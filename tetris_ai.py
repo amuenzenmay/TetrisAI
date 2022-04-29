@@ -12,6 +12,7 @@ class TetrisAI(object):
     def nextMove(self):
         t1 = datetime.now()
         if BOARD_DATA.currentShape == Shape.shapeNone:
+            print('ShapeNone')
             return None
 
         currentDirection = BOARD_DATA.currentDirection
@@ -36,7 +37,7 @@ class TetrisAI(object):
             d1Range = (0, 1, 2, 3)
 
         for d0 in d0Range:
-            minX, maxX, _, _ = BOARD_DATA.currentShape.getBoundingOffsets(d0)
+            minX, maxX, _, maxY = BOARD_DATA.currentShape.getBoundingOffsets(d0)
             for x0 in range(-minX, BOARD_DATA.width - maxX):
                 board = self.calcStep1Board(d0, x0)
                 for d1 in d1Range:
@@ -46,7 +47,7 @@ class TetrisAI(object):
                         score = self.calculateScore(np.copy(board), d1, x1, dropDist)
                         if not strategy or strategy[2] < score:
                             strategy = (d0, x0, score)
-        print("===", datetime.now() - t1)
+        # print("===", datetime.now() - t1)
         return strategy
 
     def calcNextDropDist(self, data, d0, xRange):
@@ -120,6 +121,7 @@ class TetrisAI(object):
                 fullLines += 1
         vHoles = sum([x ** .7 for x in holeConfirm])
         maxHeight = max(roofY) - fullLines
+        # print('MaxHeight: {}'.format(maxHeight))
         # print(datetime.now() - t1)
 
         roofDy = [roofY[i] - roofY[i+1] for i in range(len(roofY) - 1)]

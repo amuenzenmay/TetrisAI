@@ -16,6 +16,7 @@ class Tetris(QMainWindow):
         super().__init__()
         self.isStarted = False
         self.isPaused = False
+        self.gameOver = False
         self.nextMove = None
         self.lastShape = Shape.shapeNone
 
@@ -23,7 +24,7 @@ class Tetris(QMainWindow):
 
     def initUI(self):
         self.gridSize = 22
-        self.speed = 10
+        self.speed = 0.5
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)
@@ -86,6 +87,8 @@ class Tetris(QMainWindow):
 
     def timerEvent(self, event):
         if event.timerId() == self.timer.timerId():
+            if self.gameOver:
+                app.quit()
             if TETRIS_AI and not self.nextMove:
                 self.nextMove = TETRIS_AI.nextMove()
             if self.nextMove:
@@ -102,11 +105,16 @@ class Tetris(QMainWindow):
                     k += 1
             # lines = BOARD_DATA.dropDown()
             lines = BOARD_DATA.moveDown()
-            self.tboard.score += lines
-            if self.lastShape != BOARD_DATA.currentShape:
-                self.nextMove = None
-                self.lastShape = BOARD_DATA.currentShape
-            self.updateWindow()
+            if lines is not None:
+                self.tboard.score += lines
+                if self.lastShape != BOARD_DATA.currentShape:
+                    self.nextMove = None
+                    self.lastShape = BOARD_DATA.currentShape
+
+                self.updateWindow()
+            else:
+                self.gameOver = True
+
         else:
             super(Tetris, self).timerEvent(event)
 
@@ -131,6 +139,17 @@ class Tetris(QMainWindow):
             BOARD_DATA.rotateLeft()
         elif key == Qt.Key_Space:
             self.tboard.score += BOARD_DATA.dropDown()
+        elif key == Qt.Key_Shift:
+            tempShape = BOARD_DATA.currentShape
+            BOARD_DATA.currentShape = BOARD_DATA.nextShape
+            BOARD_DATA.nextShape = tempShape
+        elif key == Qt.Key_C:
+            BOARD_DATA.clear()
+            self.tboard.score = 0
+        elif key == Qt.Key_Escape:
+            self.timer.stop()
+            print('Exiting Game')
+            app.quit()
         else:
             super(Tetris, self).keyPressEvent(event)
 
@@ -145,6 +164,10 @@ def drawSquare(painter, x, y, val, s):
         return
 
     color = QColor(colorTable[val])
+    x = int(x)
+    y = int(y)
+    s = int(s)
+
     painter.fillRect(x + 1, y + 1, s - 2, s - 2, color)
 
     painter.setPen(color.lighter())
@@ -219,6 +242,20 @@ class Board(QFrame):
 
 if __name__ == '__main__':
     # random.seed(32)
-    app = QApplication([])
-    tetris = Tetris()
-    sys.exit(app.exec_())
+    scores = []
+    game = 1
+    while game <= 10:
+        app = QApplication([])
+        tetris = Tetris()
+        app.exec_()
+        print('Game {} final fcore: {}'.format(game, tetris.tboard.score))
+        scores.append(tetris.tboard.score)
+        del app
+        del tetris
+        game += 1
+
+
+    avg = sum(scores) / 10
+    print('Average Score: ', avg)
+
+    sys.exit()

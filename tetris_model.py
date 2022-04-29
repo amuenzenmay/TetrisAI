@@ -113,7 +113,9 @@ class BoardData(object):
 
     def tryMove(self, shape, direction, x, y):
         for x, y in shape.getCoords(direction, x, y):
-            if x >= BoardData.width or x < 0 or y >= BoardData.height or y < 0:
+            if x >= BoardData.width or x < 0:
+                return False
+            if y >= BoardData.height or y < 0:
                 return False
             if self.backBoard[x + y * BoardData.width] > 0:
                 return False
@@ -124,6 +126,8 @@ class BoardData(object):
         if self.tryMoveCurrent(self.currentDirection, self.currentX, self.currentY + 1):
             self.currentY += 1
         else:
+            if self.currentY < 0:
+                return None
             self.mergePiece()
             lines = self.removeFullLines()
             self.createNewPiece()
