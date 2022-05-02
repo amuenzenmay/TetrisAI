@@ -67,7 +67,7 @@ class Shape(object):
 
 class BoardData(object):
     width = 10
-    height = 22
+    height = 20
 
     def __init__(self):
         self.backBoard = [0] * BoardData.width * BoardData.height

@@ -24,8 +24,8 @@ class Tetris(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.gridSize = 22
-        self.speed = 1000
+        self.gridSize = 20
+        self.speed = 100
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)
@@ -245,7 +245,7 @@ if __name__ == '__main__':
     # random.seed(32)
     scores = []
     game = 1
-    while game <= 10:
+    while game <= 1:
         app = QApplication([])
         tetris = Tetris()
         app.exec_()

@@ -35,17 +35,16 @@ class TetrisAI(object):
         randDir = currDirRange[0]
 
         minX, maxX, minY, maxY = BOARD_DATA.currentShape.getBoundingOffsets(randDir)
-        validX = list(range(minX, maxX + 1))
+        validX = list(range(-minX, BOARD_DATA.width - maxX))
         random.shuffle(validX)
         randX = validX[0]
-        print(self.bumpyness(BOARD_DATA.currentShape, BOARD_DATA.currentDirection, randX))
+        print(self.bumpyness())
 
         return (randDir, randX, 0)
 
-    def bumpyness(self, shape, direction, x0):
-        dy = BOARD_DATA.height - 1
+    def bumpyness(self):
         board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
-        bumpyness = [0] * BOARD_DATA.width
+        bumpyness = [BOARD_DATA.height] * BOARD_DATA.width
         for col in range(BOARD_DATA.width):
             for row in range(0, BOARD_DATA.height):
                 if board[row, col]:
