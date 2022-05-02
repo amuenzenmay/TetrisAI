@@ -69,4 +69,5 @@ class TetrisAI(object):
 
 
 
+
 TETRIS_AI = TetrisAI()
