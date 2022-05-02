@@ -7,7 +7,8 @@ from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal
 from PyQt5.QtGui import QPainter, QColor
 
 from tetris_model import BOARD_DATA, Shape
-from tetris_ai import TETRIS_AI
+# from tetris_ai import TETRIS_AI
+from tetrisAgent import TETRIS_AI
 
 # TETRIS_AI = None
 
@@ -24,7 +25,7 @@ class Tetris(QMainWindow):
 
     def initUI(self):
         self.gridSize = 22
-        self.speed = 0.5
+        self.speed = 1000
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)
