@@ -121,6 +121,7 @@ class TetrisAI(object):
                 fullLines += 1
         vHoles = sum([x ** .7 for x in holeConfirm])
         maxHeight = max(roofY) - fullLines
+        print(vHoles)
         # print('MaxHeight: {}'.format(maxHeight))
         # print(datetime.now() - t1)
 

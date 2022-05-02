@@ -10,7 +10,7 @@ from tetris_model import BOARD_DATA, Shape
 # from tetris_ai import TETRIS_AI
 from tetrisAgent import TETRIS_AI
 
-# TETRIS_AI = None
+#TETRIS_AI = None
 
 class Tetris(QMainWindow):
     def __init__(self):
@@ -25,7 +25,7 @@ class Tetris(QMainWindow):
 
     def initUI(self):
         self.gridSize = 22
-        self.speed = 1000
+        self.speed = 100
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)

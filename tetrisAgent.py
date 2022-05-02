@@ -4,7 +4,6 @@ from datetime import datetime
 import numpy as np
 import random
 
-
 class gameState:
     def __init__(self, holes, board, shape):
         self.shape = shape
@@ -42,6 +41,8 @@ class TetrisAI(object):
 
         return (randDir, randX, 0)
 
+    """gets the top level square for each column"""
+
     def bumpyness(self, shape, direction, x0):
         dy = BOARD_DATA.height - 1
         board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
@@ -52,6 +53,8 @@ class TetrisAI(object):
                     if row < bumpyness[col]:
                         bumpyness[col] = row
         return bumpyness
+
+
 
 
 TETRIS_AI = TetrisAI()
