@@ -9,8 +9,10 @@ from PyQt5.QtGui import QPainter, QColor
 from tetris_model import BOARD_DATA, Shape
 # from tetris_ai import TETRIS_AI
 from tetrisAgent import TETRIS_AI
+from tetrisAgent import GameState
 
-#TETRIS_AI = None
+
+# TETRIS_AI = None
 
 class Tetris(QMainWindow):
     def __init__(self):
@@ -24,7 +26,7 @@ class Tetris(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.gridSize = 22
+        self.gridSize = 20
         self.speed = 100
 
         self.timer = QBasicTimer()
@@ -91,7 +93,8 @@ class Tetris(QMainWindow):
             if self.gameOver:
                 app.quit()
             if TETRIS_AI and not self.nextMove:
-                self.nextMove = TETRIS_AI.nextMove()
+
+                self.nextMove = TETRIS_AI.nextMove(GameState)
             if self.nextMove:
                 k = 0
                 while BOARD_DATA.currentDirection != self.nextMove[0] and k < 4:
@@ -125,11 +128,11 @@ class Tetris(QMainWindow):
             return
 
         key = event.key()
-        
+
         if key == Qt.Key_P:
             self.pause()
             return
-            
+
         if self.isPaused:
             return
         elif key == Qt.Key_Left:
@@ -232,7 +235,7 @@ class Board(QFrame):
 
         # Draw a border
         painter.setPen(QColor(0x777777))
-        painter.drawLine(self.width()-1, 0, self.width()-1, self.height())
+        painter.drawLine(self.width() - 1, 0, self.width() - 1, self.height())
         painter.setPen(QColor(0xCCCCCC))
         painter.drawLine(self.width(), 0, self.width(), self.height())
 
@@ -245,7 +248,7 @@ if __name__ == '__main__':
     # random.seed(32)
     scores = []
     game = 1
-    while game <= 10:
+    while game <= 1:
         app = QApplication([])
         tetris = Tetris()
         app.exec_()
@@ -254,7 +257,6 @@ if __name__ == '__main__':
         del app
         del tetris
         game += 1
-
 
     avg = sum(scores) / 10
     print('Average Score: ', avg)
