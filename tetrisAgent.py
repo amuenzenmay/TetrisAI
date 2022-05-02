@@ -3,6 +3,7 @@ import math
 from datetime import datetime
 import numpy as np
 import random
+import util
 
 
 class GameState:
@@ -13,7 +14,35 @@ class GameState:
         self.shape = BOARD_DATA.currentShape
 
 
+        self.legalActions = TetrisAI.getLegalActions()
+
+    def calcStep1Board(self, d0, x0):
+        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
+        self.dropDown(board, BOARD_DATA.currentShape, d0, x0)
+        return board
+
+    def reward(self):
+        survival = False
+        gameOver = False
+        t1 = datetime.now()
+
+
+
+
+
 class TetrisAI(object):
+
+    def __init__(self):
+        self.qValues = util.Counter()
+
+    def getQValue(self, state, action, successor):
+        return self.qValues[state, action, successor]
+
+    def getState(self, GameState):
+        state = GameState
+
+
+
 
 
     def nextMove(self, gameState):
@@ -45,6 +74,8 @@ class TetrisAI(object):
         print('Bumpyness: ', bumpyness)
         holes = self.get_holes(bumpyness)
         print('Holes: ', holes)
+        legalActions = self.getLegalActions()
+        print('actions ', legalActions)
 
         return (randDir, randX, 0)
 
@@ -68,6 +99,52 @@ class TetrisAI(object):
         return holes
 
 
+    def getLegalActions(self):
+        legalActions = []
+        if BOARD_DATA.currentShape == Shape.shapeNone:
+            '''print('ShapeNone')'''
+            return None
+        currentDirection = BOARD_DATA.currentDirection
+        currentY = BOARD_DATA.currentY
+        _, _, minY, _ = BOARD_DATA.nextShape.getBoundingOffsets(0)
+        nextY = -minY
+        if BOARD_DATA.currentShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
+            d0Range = (0, 1)
+        elif BOARD_DATA.currentShape.shape == Shape.shapeO:
+            d0Range = (0,)
+        else:
+            d0Range = (0, 1, 2, 3)
 
+        if BOARD_DATA.nextShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
+            d1Range = (0, 1)
+        elif BOARD_DATA.nextShape.shape == Shape.shapeO:
+            d1Range = (0,)
+        else:
+            d1Range = (0, 1, 2, 3)
+        for d0 in d0Range:
+            minX, maxX, _, maxY = BOARD_DATA.currentShape.getBoundingOffsets(d0)
+            for x0 in range(-minX, BOARD_DATA.width - maxX):
+                legalActions.append((d0, x0))
+        return legalActions
+
+
+    def setNewBoard(self, d0Range, step1Board, d1Range):
+        for d0 in d0Range:
+            minX, maxX, _, maxY = BOARD_DATA.currentShape.getBoundingOffsets(d0)
+            for x0 in range(-minX, BOARD_DATA.width - maxX):
+                board = self.calcStep1Board(d0, x0)
+                for d1 in d1Range:
+                    minX, maxX, _, _ = BOARD_DATA.nextShape.getBoundingOffsets(d1)
+                    dropDist = self.calcNextDropDist(board, d1, range(-minX, BOARD_DATA.width - maxX))
+                    for x1 in range(-minX, BOARD_DATA.width - maxX):
+                        score = self.calculateScore(np.copy(board), d1, x1, dropDist)
+                        if not strategy or strategy[2] < score:
+                            strategy = (d0, x0, score)
+        return strategy
+
+    def getAction(self, gameState):
+        legalActions = []
+
+        return 0
 
 TETRIS_AI = TetrisAI()

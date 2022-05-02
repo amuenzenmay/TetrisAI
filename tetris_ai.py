@@ -47,8 +47,64 @@ class TetrisAI(object):
                         score = self.calculateScore(np.copy(board), d1, x1, dropDist)
                         if not strategy or strategy[2] < score:
                             strategy = (d0, x0, score)
+
+        bumpyness = self.bumpyness()
+        print('Bumpyness: ', bumpyness)
+        holes = self.get_holes(bumpyness)
+        print('Holes: ', holes)
+        legalActions = self.getLegalActions()
+        print('actions ', legalActions)
+
         # print("===", datetime.now() - t1)
         return strategy
+
+    def bumpyness(self):
+        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
+        bumpyness = [BOARD_DATA.height] * BOARD_DATA.width
+        for col in range(BOARD_DATA.width):
+            for row in range(0, BOARD_DATA.height):
+                if board[row, col]:
+                    if row < bumpyness[col]:
+                        bumpyness[col] = row
+        return bumpyness
+
+    def get_holes(self, bumpyness):
+        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
+        holes = [0] * BOARD_DATA.width
+        for col in range(BOARD_DATA.width):
+            for row in range(BOARD_DATA.height -1, bumpyness[col], -1):
+                if not board[row, col]:
+                    holes[col] += 1
+        return holes
+
+
+    def getLegalActions(self):
+        legalActions = []
+        if BOARD_DATA.currentShape == Shape.shapeNone:
+            '''print('ShapeNone')'''
+            return None
+        currentDirection = BOARD_DATA.currentDirection
+        currentY = BOARD_DATA.currentY
+        _, _, minY, _ = BOARD_DATA.nextShape.getBoundingOffsets(0)
+        nextY = -minY
+        if BOARD_DATA.currentShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
+            d0Range = (0, 1)
+        elif BOARD_DATA.currentShape.shape == Shape.shapeO:
+            d0Range = (0,)
+        else:
+            d0Range = (0, 1, 2, 3)
+
+        if BOARD_DATA.nextShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
+            d1Range = (0, 1)
+        elif BOARD_DATA.nextShape.shape == Shape.shapeO:
+            d1Range = (0,)
+        else:
+            d1Range = (0, 1, 2, 3)
+        for d0 in d0Range:
+            minX, maxX, _, maxY = BOARD_DATA.currentShape.getBoundingOffsets(d0)
+            for x0 in range(-minX, BOARD_DATA.width - maxX):
+                legalActions.append((d0, x0))
+        return legalActions
 
     def calcNextDropDist(self, data, d0, xRange):
         res = {}
