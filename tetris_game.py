@@ -8,7 +8,9 @@ from PyQt5.QtGui import QPainter, QColor
 
 from tetris_model import BOARD_DATA, Shape
 # from tetris_ai import TETRIS_AI
-from tetrisAgent import TETRIS_AI
+from tetrisAgent import TETRIS_AI, GameState
+import numpy as np
+
 
 # TETRIS_AI = None
 
@@ -91,7 +93,11 @@ class Tetris(QMainWindow):
             if self.gameOver:
                 app.quit()
             if TETRIS_AI and not self.nextMove:
-                self.nextMove = TETRIS_AI.nextMove()
+                board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
+                shape1 = BOARD_DATA.currentShape
+                shape2 = BOARD_DATA.nextShape
+                state = GameState(board, shape1, shape2)
+                self.nextMove = TETRIS_AI.nextMove(state)
             if self.nextMove:
                 k = 0
                 while BOARD_DATA.currentDirection != self.nextMove[0] and k < 4:

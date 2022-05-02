@@ -6,64 +6,61 @@ import random
 
 
 class GameState:
-    def __init__(self, holes, board, shape):
-        self.shape = shape
-        self.holes = holes
+    def __init__(self, board, shape, nextShape=None):
+        self.currentShape = shape
+        self.nextShape = nextShape
         self.board = board
+        self.bumps = self.get_bumpyness()
+        self.holes = self.get_holes()
+
+    def get_bumpyness(self):
+        bumps = [BOARD_DATA.height] * BOARD_DATA.width
+        for col in range(BOARD_DATA.width):
+            for row in range(0, BOARD_DATA.height):
+                if self.board[row, col]:
+                    if row < bumps[col]:
+                        bumps[col] = row
+        return bumps
+
+    def get_holes(self):
+        holes = [0] * BOARD_DATA.width
+        for col in range(BOARD_DATA.width):
+            for row in range(BOARD_DATA.height - 1, self.bumps[col], -1):
+                if not self.board[row, col]:
+                    holes[col] += 1
+        return holes
+
+    def getLegalMoves(self):
+        if self.currentShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
+            directions = [0, 1]
+        elif self.currentShape.shape == Shape.shapeO:
+            directions = [0, ]
+        else:
+            directions = [0, 1, 2, 3]
+
+        legalMoves = []
+        for d in directions:
+            minX, maxX, minY, maxY = self.currentShape.getBoundingOffsets(d)
+            validX = list(range(-minX, BOARD_DATA.width - maxX))
+            for x in validX:
+                legalMoves.append((d, x))
+        return legalMoves
 
 
 class TetrisAI(object):
     def nextMove(self, gameState):
-        if BOARD_DATA.nextShape == Shape.shapeNone:
+        if gameState.nextShape == Shape.shapeNone:
             return None
 
-        if BOARD_DATA.currentShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
-            currDirRange = [0, 1]
-        elif BOARD_DATA.currentShape.shape == Shape.shapeO:
-            currDirRange = [0, ]
-        else:
-            currDirRange = [0, 1, 2, 3]
+        legalMoves = gameState.getLegalMoves()
+        random.shuffle(legalMoves)
 
-        if BOARD_DATA.nextShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
-            nextDirRange = [0, 1]
-        elif BOARD_DATA.nextShape.shape == Shape.shapeO:
-            nextDirRange = [0, ]
-        else:
-            nextDirRange = [0, 1, 2, 3]
+        print('Bumps: ', gameState.bumps)
+        print('Holes: ', gameState.holes)
+        print('Moves: ', legalMoves)
+        d, x = legalMoves[0]
 
-        random.shuffle(currDirRange)
-        randDir = currDirRange[0]
-
-        minX, maxX, minY, maxY = BOARD_DATA.currentShape.getBoundingOffsets(randDir)
-        validX = list(range(-minX, BOARD_DATA.width - maxX))
-        random.shuffle(validX)
-        randX = validX[0]
-        bumpyness = self.bumpyness()
-        print('Bumpyness: ', bumpyness)
-        holes = self.get_holes(bumpyness)
-        print('Holes: ', holes)
-
-        return (randDir, randX, 0)
-
-    def bumpyness(self):
-        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
-        bumpyness = [BOARD_DATA.height] * BOARD_DATA.width
-        for col in range(BOARD_DATA.width):
-            for row in range(0, BOARD_DATA.height):
-                if board[row, col]:
-                    if row < bumpyness[col]:
-                        bumpyness[col] = row
-        return bumpyness
-
-    def get_holes(self, bumpyness):
-        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
-        holes = [0] * BOARD_DATA.width
-        for col in range(BOARD_DATA.width):
-            for row in range(BOARD_DATA.height -1, bumpyness[col], -1):
-                if not board[row, col]:
-                    holes[col] += 1
-        return holes
-
+        return (d, x, 0)
 
 
 TETRIS_AI = TetrisAI()
