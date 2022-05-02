@@ -6,10 +6,30 @@ import random
 
 
 class GameState:
-    def __init__(self, holes, board, shape):
-        self.shape = shape
-        self.holes = holes
-        self.board = board
+    def __init__(self, board):
+        self.shape = board.currentShape
+        self.board = np.array(board.getData()).reshape((board.height, board.width))
+        self.bumps = self.bumpyness()
+        self.holes = self.get_holes(self.bumps)
+    
+    def bumpyness(self):
+        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
+        bumpyness = [BOARD_DATA.height] * BOARD_DATA.width
+        for col in range(BOARD_DATA.width):
+            for row in range(0, BOARD_DATA.height):
+                if board[row, col]:
+                    if row < bumpyness[col]:
+                        bumpyness[col] = row
+        return bumpyness
+
+    def get_holes(self, bumpyness):
+        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
+        holes = [0] * BOARD_DATA.width
+        for col in range(BOARD_DATA.width):
+            for row in range(BOARD_DATA.height -1, bumpyness[col], -1):
+                if not board[row, col]:
+                    holes[col] += 1
+        return holes
 
 
 class TetrisAI(object):
@@ -38,31 +58,13 @@ class TetrisAI(object):
         validX = list(range(-minX, BOARD_DATA.width - maxX))
         random.shuffle(validX)
         randX = validX[0]
-        bumpyness = self.bumpyness()
-        print('Bumpyness: ', bumpyness)
-        holes = self.get_holes(bumpyness)
+        bumpy = gameState.bumps
+        print('Bumpyness: ', bumpy)
+        holes = gameState.holes
         print('Holes: ', holes)
 
         return (randDir, randX, 0)
 
-    def bumpyness(self):
-        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
-        bumpyness = [BOARD_DATA.height] * BOARD_DATA.width
-        for col in range(BOARD_DATA.width):
-            for row in range(0, BOARD_DATA.height):
-                if board[row, col]:
-                    if row < bumpyness[col]:
-                        bumpyness[col] = row
-        return bumpyness
-
-    def get_holes(self, bumpyness):
-        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
-        holes = [0] * BOARD_DATA.width
-        for col in range(BOARD_DATA.width):
-            for row in range(BOARD_DATA.height -1, bumpyness[col], -1):
-                if not board[row, col]:
-                    holes[col] += 1
-        return holes
 
 
 
