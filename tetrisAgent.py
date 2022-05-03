@@ -47,9 +47,14 @@ class GameState:
         return legalMoves
 
 
+
+
 class TetrisAI(object):
     def __init__(self):
         self.qvs = {} # May need to use a Counter instead
+        self.epsilon = 0.5
+        self.alpha = 0
+        self.discord = 0.7
     
     def get_qv(self, state, move):
         if (state, move) in self.qvs:
@@ -67,6 +72,29 @@ class TetrisAI(object):
             moves[move] = self.get_qv(state, move)
         pass # Need to return the arg max of moves[move]
 
+    def get_move(self, state):
+        legal = state.getLegalMoves()
+        if not len(legal):
+            return None
+        randy = random.random()
+        if randy > self.epsilon:
+          return random.choice(legal)
+        else:
+          return self.policy(state)
+
+    def update(self, state, move, nextState, reward):
+        # How do we get the next state?
+        q = self.get_qv(state, move)
+        value = self.get_value(nextState)
+        new_q = (1-self.alpha) * q + self.alpha * (reward + self.discount*value)
+        self.qvs[(state, move)] = new_q
+
+    def get_policy(self, state):
+        return self.move_from_qvs(state)
+
+    def get_value(self, state):
+        return self.val_from_qvs(state)
+
     def nextMove(self, state):
         if state.nextShape == Shape.shapeNone:
             return None
@@ -79,8 +107,5 @@ class TetrisAI(object):
         d, x = legalMoves[0]
     
         return (d, x, 0)
-
-    def update(self, state, action, nextState, reward):
-        pass
 
 TETRIS_AI = TetrisAI()
