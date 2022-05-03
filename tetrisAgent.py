@@ -7,36 +7,16 @@ import util
 
 
 class GameState:
-<<<<<<< HEAD
-    def __init__(self, board):
-        self.board = BOARD_DATA
-        self.bumpyness = TetrisAI.bumpyness()
-        self.holes = TetrisAI.get_holes
-        self.shape = BOARD_DATA.currentShape
 
 
-        self.legalActions = TetrisAI.getLegalActions()
-
-    def calcStep1Board(self, d0, x0):
-        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
-        self.dropDown(board, BOARD_DATA.currentShape, d0, x0)
-        return board
-
-    def reward(self):
-        survival = False
-        gameOver = False
-        t1 = datetime.now()
-
-
-
-=======
     def __init__(self, board, shape, nextShape=None):
         self.currentShape = shape
         self.nextShape = nextShape
         self.board = board
         self.bumps = self.get_bumpyness()
         self.holes = self.get_holes()
->>>>>>> 68198ccede06878af0edc7aa5c9a622f14133852
+
+
 
     def get_bumpyness(self):
         bumps = [BOARD_DATA.height] * BOARD_DATA.width
@@ -46,21 +26,6 @@ class GameState:
                     if row < bumps[col]:
                         bumps[col] = row
         return bumps
-
-<<<<<<< HEAD
-class TetrisAI(object):
-
-    def __init__(self):
-        self.qValues = util.Counter()
-
-    def getQValue(self, state, action, successor):
-        return self.qValues[state, action, successor]
-
-    def getState(self, GameState):
-        state = GameState
-
-
-
 
 
     def nextMove(self, gameState):
@@ -73,7 +38,7 @@ class TetrisAI(object):
             currDirRange = [0, ]
         else:
             currDirRange = [0, 1, 2, 3]
-=======
+
     def get_holes(self):
         holes = [0] * BOARD_DATA.width
         for col in range(BOARD_DATA.width):
@@ -81,9 +46,8 @@ class TetrisAI(object):
                 if not self.board[row, col]:
                     holes[col] += 1
         return holes
->>>>>>> 68198ccede06878af0edc7aa5c9a622f14133852
 
-    def getLegalMoves(self):
+    def get_legal_moves(self):
         if self.currentShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
             directions = [0, 1]
         elif self.currentShape.shape == Shape.shapeO:
@@ -99,81 +63,81 @@ class TetrisAI(object):
                 legalMoves.append((d, x))
         return legalMoves
 
-<<<<<<< HEAD
-        minX, maxX, minY, maxY = BOARD_DATA.currentShape.getBoundingOffsets(randDir)
-        validX = list(range(-minX, BOARD_DATA.width - maxX))
-        random.shuffle(validX)
-        randX = validX[0]
-        bumpyness = self.bumpyness()
-        print('Bumpyness: ', bumpyness)
-        holes = self.get_holes(bumpyness)
-        print('Holes: ', holes)
-        legalActions = self.getLegalActions()
-        print('actions ', legalActions)
-=======
->>>>>>> 68198ccede06878af0edc7aa5c9a622f14133852
-
 class TetrisAI(object):
-    def nextMove(self, gameState):
-        if gameState.nextShape == Shape.shapeNone:
-            return None
 
-        legalMoves = gameState.getLegalMoves()
+    def __init__(self):
+        self.qValues = util.Counter()
+
+    def getQValue(self, state, action, successor):
+        return self.qValues[state, action, successor]
+
+    def getState(self, GameState):
+        state = GameState
+
+    def score(self, state):
+        pass
+
+    def nextMove(self, state):
+        if state.nextShape == Shape.shapeNone:
+            return None
+        legalMoves = state.get_legal_moves()
         random.shuffle(legalMoves)
 
-        print('Bumps: ', gameState.bumps)
-        print('Holes: ', gameState.holes)
+        print('Bumps: ', state.bumps)
+        print('Holes: ', state.holes)
         print('Moves: ', legalMoves)
-        d, x = legalMoves[0]
 
+        d, x = legalMoves[0]
         return (d, x, 0)
 
-    def getLegalActions(self):
-        legalActions = []
-        if BOARD_DATA.currentShape == Shape.shapeNone:
-            '''print('ShapeNone')'''
+
+
+
+class QLearner(TetrisAI):
+    def __init__(self):
+        TetrisAI.__init__()
+        self.qvs = {} # May need to use a Counter instead
+        self.epsilon = 0.5
+        self.alpha = 0
+        self.discount = 0.7
+    
+    def get_qv(self, state, move):
+        if (state, move) in self.qvs:
+          return self.qvs[(state, move)]
+        else:
+          return 0.0
+
+    def val_from_qvs(self, state):
+        legal = state.get_legal_moves()
+        return max([self.get_qv(state, move) for move in legal])
+
+    def move_from_qvs(self, state):
+        moves = {}
+        for move in state.get_legal_moves():
+            moves[move] = self.get_qv(state, move)
+        return max(moves, key=moves.get) # This should get argmax(qvs)
+
+    def get_move(self, state):
+        legal = state.get_legal_moves()
+        if not len(legal):
             return None
-        currentDirection = BOARD_DATA.currentDirection
-        currentY = BOARD_DATA.currentY
-        _, _, minY, _ = BOARD_DATA.nextShape.getBoundingOffsets(0)
-        nextY = -minY
-        if BOARD_DATA.currentShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
-            d0Range = (0, 1)
-        elif BOARD_DATA.currentShape.shape == Shape.shapeO:
-            d0Range = (0,)
+        randy = random.random()
+        if randy > self.epsilon:
+          return random.choice(legal)
         else:
-            d0Range = (0, 1, 2, 3)
+          return self.get_policy(state)
 
-        if BOARD_DATA.nextShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
-            d1Range = (0, 1)
-        elif BOARD_DATA.nextShape.shape == Shape.shapeO:
-            d1Range = (0,)
-        else:
-            d1Range = (0, 1, 2, 3)
-        for d0 in d0Range:
-            minX, maxX, _, maxY = BOARD_DATA.currentShape.getBoundingOffsets(d0)
-            for x0 in range(-minX, BOARD_DATA.width - maxX):
-                legalActions.append((d0, x0))
-        return legalActions
+    def update(self, state, move, nextState, score):
+        # How do we get the next state?
+        q = self.get_qv(state, move)
+        value = self.get_value(nextState)
+        new_q = (1-self.alpha) * q + self.alpha * (score + self.discount * value)
+        self.qvs[(state, move)] = new_q
 
+    def get_policy(self, state):
+        return self.move_from_qvs(state)
 
-    def setNewBoard(self, d0Range, step1Board, d1Range):
-        for d0 in d0Range:
-            minX, maxX, _, maxY = BOARD_DATA.currentShape.getBoundingOffsets(d0)
-            for x0 in range(-minX, BOARD_DATA.width - maxX):
-                board = self.calcStep1Board(d0, x0)
-                for d1 in d1Range:
-                    minX, maxX, _, _ = BOARD_DATA.nextShape.getBoundingOffsets(d1)
-                    dropDist = self.calcNextDropDist(board, d1, range(-minX, BOARD_DATA.width - maxX))
-                    for x1 in range(-minX, BOARD_DATA.width - maxX):
-                        score = self.calculateScore(np.copy(board), d1, x1, dropDist)
-                        if not strategy or strategy[2] < score:
-                            strategy = (d0, x0, score)
-        return strategy
-
-    def getAction(self, gameState):
-        legalActions = []
-
-        return 0
+    def get_value(self, state):
+        return self.val_from_qvs(state)
 
 TETRIS_AI = TetrisAI()

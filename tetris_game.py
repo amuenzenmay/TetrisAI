@@ -7,15 +7,12 @@ from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal
 from PyQt5.QtGui import QPainter, QColor
 
 from tetris_model import BOARD_DATA, Shape
-<<<<<<< HEAD
 from tetris_ai import TETRIS_AI
 # from tetrisAgent import TETRIS_AI
 from tetrisAgent import GameState
-=======
 # from tetris_ai import TETRIS_AI
 from tetrisAgent import TETRIS_AI, GameState
 import numpy as np
->>>>>>> 68198ccede06878af0edc7aa5c9a622f14133852
 
 
 # TETRIS_AI = None
@@ -33,7 +30,7 @@ class Tetris(QMainWindow):
 
     def initUI(self):
         self.gridSize = 20
-        self.speed = 1000
+        self.speed = 100
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)
@@ -99,16 +96,13 @@ class Tetris(QMainWindow):
             if self.gameOver:
                 app.quit()
             if TETRIS_AI and not self.nextMove:
-<<<<<<< HEAD
 
-                self.nextMove = TETRIS_AI.nextMove()
-=======
                 board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
                 shape1 = BOARD_DATA.currentShape
                 shape2 = BOARD_DATA.nextShape
                 state = GameState(board, shape1, shape2)
+
                 self.nextMove = TETRIS_AI.nextMove(state)
->>>>>>> 68198ccede06878af0edc7aa5c9a622f14133852
             if self.nextMove:
                 k = 0
                 while BOARD_DATA.currentDirection != self.nextMove[0] and k < 4:
