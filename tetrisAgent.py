@@ -48,19 +48,39 @@ class GameState:
 
 
 class TetrisAI(object):
-    def nextMove(self, gameState):
-        if gameState.nextShape == Shape.shapeNone:
-            return None
+    def __init__(self):
+        self.qvs = {} # May need to use a Counter instead
+    
+    def get_qv(self, state, action):
+        if (state, action) in self.qValues:
+          return self.qvs[(state, action)]
+        else:
+          return 0.0
 
-        legalMoves = gameState.getLegalMoves()
+    def val_from_qvs(self, state):
+        legal = state.getLegalMoves()
+        return max([self.getQValue(state, move) for move in legal])
+
+    def move_from_qvs(self, state):
+        moves = {}
+        for move in self.getLegalMoves():
+            moves[move] = self.get_qv(state, move)
+        pass # Need to return the arg max of moves[move]
+
+    def nextMove(self, state):
+        if state.nextShape == Shape.shapeNone:
+            return None
+        legalMoves = state.getLegalMoves()
         random.shuffle(legalMoves)
 
-        print('Bumps: ', gameState.bumps)
-        print('Holes: ', gameState.holes)
+        print('Bumps: ', state.bumps)
+        print('Holes: ', state.holes)
         print('Moves: ', legalMoves)
         d, x = legalMoves[0]
-
+    
         return (d, x, 0)
 
+    def update(self, state, action, nextState, reward):
+        pass
 
 TETRIS_AI = TetrisAI()
