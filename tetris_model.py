@@ -125,13 +125,15 @@ class BoardData(object):
         lines = 0
         if self.tryMoveCurrent(self.currentDirection, self.currentX, self.currentY + 1):
             self.currentY += 1
+            merged = False
         else:
             if self.currentY < 0:
-                return None
+                return None, False
             self.mergePiece()
             lines = self.removeFullLines()
             self.createNewPiece()
-        return lines
+            merged = True
+        return lines, merged
 
     def dropDown(self):
         while self.tryMoveCurrent(self.currentDirection, self.currentX, self.currentY + 1):
