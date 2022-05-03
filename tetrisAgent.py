@@ -30,7 +30,7 @@ class GameState:
                     holes[col] += 1
         return holes
 
-    def getLegalMoves(self):
+    def get_legal_moves(self):
         if self.currentShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
             directions = [0, 1]
         elif self.currentShape.shape == Shape.shapeO:
@@ -46,28 +46,81 @@ class GameState:
                 legalMoves.append((d, x))
         return legalMoves
 
-
 class TetrisAI(object):
-    def nextMove(self, gameState):
-        if gameState.nextShape == Shape.shapeNone:
-            return None
+    def __init__(self):
+        pass
 
-        legalMoves = gameState.getLegalMoves()
+    def score(self, state):
+        pass
+
+    def nextMove(self, state):
+        if state.nextShape == Shape.shapeNone:
+            return None
+        legalMoves = state.get_legal_moves()
         random.shuffle(legalMoves)
 
-        print('Bumps: ', gameState.bumps)
-        print('Holes: ', gameState.holes)
+        print('Bumps: ', state.bumps)
+        print('Holes: ', state.holes)
         print('Moves: ', legalMoves)
-        d, x = legalMoves[0]
 
+        d, x = legalMoves[0]
         return (d, x, 0)
+
+
+class QLearner(TetrisAI):
+    def __init__(self):
+        TetrisAI.__init__()
+        self.qvs = {} # May need to use a Counter instead
+        self.epsilon = 0.5
+        self.alpha = 0
+        self.discord = 0.7
+    
+    def get_qv(self, state, move):
+        if (state, move) in self.qvs:
+          return self.qvs[(state, move)]
+        else:
+          return 0.0
+
+    def val_from_qvs(self, state):
+        legal = state.get_legal_moves()
+        return max([self.get_qv(state, move) for move in legal])
+
+    def move_from_qvs(self, state):
+        moves = {}
+        for move in state.get_legal_moves():
+            moves[move] = self.get_qv(state, move)
+        return max(moves, key=moves.get) # This should get argmax(qvs)
+
+    def get_move(self, state):
+        legal = state.get_legal_moves()
+        if not len(legal):
+            return None
+        randy = random.random()
+        if randy > self.epsilon:
+          return random.choice(legal)
+        else:
+          return self.policy(state)
+
+    def update(self, state, move, nextState, score):
+        # How do we get the next state?
+        q = self.get_qv(state, move)
+        value = self.get_value(nextState)
+        new_q = (1-self.alpha) * q + self.alpha * (score + self.discount*value)
+        self.qvs[(state, move)] = new_q
+
+    def get_policy(self, state):
+        return self.move_from_qvs(state)
+
+    def get_value(self, state):
+        return self.val_from_qvs(state)
+
 
 class SimpleTetrisAI(object):
     def nextMove(self, gameState):
         if gameState.nextShape == Shape.shapeNone:
             print("NEXT SHAPE IS NONE")
             return None
-        legalMoves = gameState.getLegalMoves()
+        legalMoves = gameState.get_legal_moves()
         minScore = float('inf')
         bestAction = None
         for action in legalMoves:
@@ -76,7 +129,6 @@ class SimpleTetrisAI(object):
             if nextScore < minScore or bestAction is None:
                 minScore = nextScore
                 bestAction = action
-
         return bestAction
 
     def nextState(self, gameState, action):
