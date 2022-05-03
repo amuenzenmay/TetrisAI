@@ -51,15 +51,15 @@ class TetrisAI(object):
     def __init__(self):
         self.qvs = {} # May need to use a Counter instead
     
-    def get_qv(self, state, action):
-        if (state, action) in self.qValues:
-          return self.qvs[(state, action)]
+    def get_qv(self, state, move):
+        if (state, move) in self.qvs:
+          return self.qvs[(state, move)]
         else:
           return 0.0
 
     def val_from_qvs(self, state):
         legal = state.getLegalMoves()
-        return max([self.getQValue(state, move) for move in legal])
+        return max([self.get_qv(state, move) for move in legal])
 
     def move_from_qvs(self, state):
         moves = {}
