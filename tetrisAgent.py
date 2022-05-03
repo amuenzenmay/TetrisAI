@@ -62,5 +62,46 @@ class TetrisAI(object):
 
         return (d, x, 0)
 
+class SimpleTetrisAI(object):
+    def nextMove(self, gameState):
+        if gameState.nextShape == Shape.shapeNone:
+            print("NEXT SHAPE IS NONE")
+            return None
+        legalMoves = gameState.getLegalMoves()
+        minScore = float('inf')
+        bestAction = None
+        for action in legalMoves:
+            nextState = self.nextState(gameState, action)
+            nextScore = sum(nextState.holes) + max(nextState.bumps)
+            if nextScore < minScore or bestAction is None:
+                minScore = nextScore
+                bestAction = action
 
-TETRIS_AI = TetrisAI()
+        return bestAction
+
+    def nextState(self, gameState, action):
+        nextBoard = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
+        shape = gameState.currentShape
+        direction, x = action
+        self.dropShape(nextBoard, shape, direction, x)
+        return GameState(nextBoard, gameState.nextShape)
+
+    def dropShape(self, board, shape, direction, x0):
+        ydist = BOARD_DATA.height - 1
+        for x, y in shape.getCoords(direction, x0, 0):
+            changeY = 0
+            while changeY + y < BOARD_DATA.height and (changeY + y < 0 or board[(y + changeY), x] == Shape.shapeNone):
+                changeY += 1
+            changeY -= 1
+            if changeY < ydist:
+                ydist = changeY
+        # print("dropDown: shape {0}, direction {1}, x0 {2}, dy {3}".format(shape.shape, direction, x0, dy))
+        self.dropShapeByDistance(board, shape, direction, x0, ydist)
+
+    def dropShapeByDistance(self, data, shape, direction, x0, dist):
+        for x, y in shape.getCoords(direction, x0, 0):
+            data[y + dist, x] = shape.shape
+
+
+# TETRIS_AI = TetrisAI()
+TETRIS_AI = SimpleTetrisAI()

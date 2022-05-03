@@ -98,6 +98,7 @@ class Tetris(QMainWindow):
                 shape2 = BOARD_DATA.nextShape
                 state = GameState(board, shape1, shape2)
                 self.nextMove = TETRIS_AI.nextMove(state)
+                # self.nextMove = TETRIS_AI.nextMove()
             if self.nextMove:
                 k = 0
                 while BOARD_DATA.currentDirection != self.nextMove[0] and k < 4:
@@ -110,6 +111,7 @@ class Tetris(QMainWindow):
                     elif BOARD_DATA.currentX < self.nextMove[1]:
                         BOARD_DATA.moveRight()
                     k += 1
+                self.nextMove = None
             # lines = BOARD_DATA.dropDown()
             lines = BOARD_DATA.moveDown()
             if lines is not None:
