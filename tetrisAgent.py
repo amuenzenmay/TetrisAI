@@ -10,6 +10,9 @@ class GameState:
         self.currentShape = shape
         self.nextShape = nextShape
         self.board = board
+        self.subwells = self.get_subwells
+        self.heightDiffs = self.get_relation
+        self.mirror = self.mirror
         self.bumps = self.get_bumpyness()
         self.holes = self.get_holes()
         self.linesCleared = 0
@@ -26,6 +29,22 @@ class GameState:
                         bumps[col] = height
         return tuple(bumps)
 
+    def get_relation(self):
+        bumps = self.get_normalized_bumpyness()
+        relationalBumps = (0, 0) * BOARD_DATA.width
+        heightDifferences = [0] * BOARD_DATA.width
+        for col in range(BOARD_DATA.width):
+            if col == 0:
+                relationalBumps[0] = (0, bumps[0])
+            elif col == 9:
+                relationalBumps[9] = (bumps[9], 0)
+            else:
+                relationalBumps[col] = (bumps[col-1], bumps[col-2])
+        for rB in relationalBumps:
+            diff = relationalBumps[abs(rb[1] - rb[0])]
+            heightDifferences.append(diff)
+        return heightDifferences
+
     def get_normalized_bumpyness(self):
         bumps = self.get_bumpyness()
         minLevel = min(bumps)
@@ -38,6 +57,29 @@ class GameState:
                 if not self.board[row, col]:
                     holes[col] += 1
         return tuple(holes)
+
+    def get_subwells(self):
+        subwell = [0] * 4
+        subwells = [0] * BOARD_DATA.width * 4
+        bumps = self.get_normalized_bumpyness()
+        for b in (range(bumps) - 4):
+            subwell.append(bumps[b], bumps[b + 1], bumps[b + 2], bumps[b + 3])
+            subwells.append(subwell)
+        return subwells
+
+    def mirror(self):
+        subwells = self.get_subwells()
+        same = False
+        mirror = False
+        for sub in (range(subwells) - 3):
+            for i in (range(subwells) - 4):
+                if(subwells[sub] == subwells[i]):
+                    same = True
+                elif(subwells[sub] == subwells[i].reverse()):
+                    mirror = True
+        return same, mirror
+
+
 
     def get_legal_moves(self):
         if self.currentShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
@@ -69,9 +111,12 @@ class TetrisAI(object):
         legalMoves = gameState.get_legal_moves()
         random.shuffle(legalMoves)
 
-        print('Bumps: ', gameState.bumps)
-        print('Holes: ', gameState.holes)
-        print('Moves: ', legalMoves)
+        heightDiffs = gameState.heightDiffs
+        print('heightDiffs: ', heightDiffs)
+        subwells = gameState.subwells
+        print('subwells: ', subwells)
+        mirror = gameState.mirror
+        print('mirror', mirror)
 
         d, x = legalMoves[0]
         return (d, x, 0)
@@ -212,6 +257,7 @@ class SimpleTetrisAI(object):
             if nextScore < minScore or bestAction is None:
                 minScore = nextScore
                 bestAction = action
+
         return bestAction
 
     def nextState(self, gameState, action):
@@ -239,6 +285,6 @@ class SimpleTetrisAI(object):
 
 
 
-# TETRIS_AI = TetrisAI()
+TETRIS_AI = TetrisAI()
 # TETRIS_AI = SimpleTetrisAI()
-TETRIS_AI = QLearner()
+# TETRIS_AI = QLearner()
