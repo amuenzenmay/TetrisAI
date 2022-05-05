@@ -113,10 +113,6 @@ class Tetris(QMainWindow):
     def timerEvent(self, event):
         if event.timerId() == self.timer.timerId():
             if self.gameOver:
-                # print(TETRIS_AI.qvs)
-                # for i in TETRIS_AI.qvs.keys():
-                #     if TETRIS_AI.qvs[i] != 0.0:
-                #         print(TETRIS_AI.qvs[i])
                 app.quit()
 
             # Get the current state
@@ -128,9 +124,7 @@ class Tetris(QMainWindow):
 
 
             if TETRIS_AI and not self.nextMove:
-                # self.nextMove = TETRIS_AI.nextMove(gameState) # Decision for simple
                 self.nextMove = TETRIS_AI.getAction(state)
-                # self.nextMove = TETRIS_AI.nextMove()
             if self.nextMove:
                 k = 0
                 while BOARD_DATA.currentDirection != self.nextMove[0] and k < 4:
@@ -143,10 +137,6 @@ class Tetris(QMainWindow):
                     elif BOARD_DATA.currentX < self.nextMove[1]:
                         BOARD_DATA.moveRight()
                     k += 1
-                # print('Next Move: ', self.nextMove)
-                # print('Current X, Y: ({}, {})'.format(BOARD_DATA.currentX, BOARD_DATA.currentY))
-
-            # lines = BOARD_DATA.dropDown()
             lines, merged = BOARD_DATA.moveDown()  # Move to the next State
 
             # print(lines)
@@ -170,11 +160,6 @@ class Tetris(QMainWindow):
                     if sumHoles2 > sumHoles1:
                         reward -= 40 * (sumHoles2 - sumHoles1)
                     reward += lines ** 2
-                    # TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
-                    # print('##################')
-                    # print('Next Move: ', self.nextMove)
-                    # print('Current X, Y: ({}, {})'.format(BOARD_DATA.currentX, BOARD_DATA.currentY))
-                    # print('##################', end='\n\n')
                     TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
                 self.tboard.score += lines
                 if self.lastShape != BOARD_DATA.currentShape:
@@ -378,7 +363,7 @@ if __name__ == '__main__':
         time = datetime.now().strftime('_%H-%M')
         df = pd.DataFrame(data=data)
         df.set_index('Runs', inplace=True)
-        df.to_csv('C:/Users/Augie/Desktop/TetrisLearning2.csv')
+        df.to_csv('C:/Users/Miles/Desktop/Learn/TetrisLearning2.csv')
 
         # Write to file
         f_myfile = open('qvalues.pickle', 'wb')
