@@ -66,7 +66,7 @@ class Shape(object):
 
 
 class BoardData(object):
-    width = 10
+    width = 6
     height = 20
 
     def __init__(self):
@@ -92,8 +92,8 @@ class BoardData(object):
     def createNewPiece(self):
         minX, maxX, minY, maxY = self.nextShape.getBoundingOffsets(0)
         result = False
-        if self.tryMoveCurrent(0, 5, -minY):
-            self.currentX = 5
+        if self.tryMoveCurrent(0, 3, -minY):
+            self.currentX = 3
             self.currentY = -minY
             self.currentDirection = 0
             self.currentShape = self.nextShape
@@ -195,3 +195,4 @@ class BoardData(object):
 
 
 BOARD_DATA = BoardData()
+DROP_SPOt = 3 # Five for the full 10 width game
