@@ -27,7 +27,7 @@ class Tetris(QMainWindow):
 
     def initUI(self):
         self.gridSize = 20
-        self.speed = 1
+        self.speed = 500
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)
@@ -127,8 +127,8 @@ class Tetris(QMainWindow):
 
             if TETRIS_AI and not self.nextMove:
                 # self.nextMove = TETRIS_AI.nextMove(state) # Decision for simple
-                self.nextMove = TETRIS_AI.getAction(state)
-                # self.nextMove = TETRIS_AI.nextMove()
+                #self.nextMove = TETRIS_AI.getAction(state)
+                self.nextMove = TETRIS_AI.nextMove(gameState)
             if self.nextMove:
                 k = 0
                 while BOARD_DATA.currentDirection != self.nextMove[0] and k < 4:
@@ -156,7 +156,7 @@ class Tetris(QMainWindow):
                     nextGameState = GameState(board, shape1, shape2)
                     nextState = (nextGameState.bumps, nextGameState.holes, nextGameState.currentShape.shape)
                     reward = lines ** 2  # - (max(nextState[0]) - max(state[0])) - (sum(nextState[1]) - sum(state[1]))
-                    TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
+                    # TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
 
                 self.tboard.score += lines
                 if self.lastShape != BOARD_DATA.currentShape:
@@ -311,13 +311,13 @@ if __name__ == '__main__':
         scores.append(tetris.tboard.score)
         del app
         # del tetris
-        print(len(TETRIS_AI.qvs.keys()))
+    """    print(len(TETRIS_AI.qvs.keys()))
         if game % 100 == 0:
             TETRIS_AI.epsilon *= 0.95
             print(TETRIS_AI.seen)
             print(TETRIS_AI.epsilon)
     avg = sum(scores) / (game - 1)
     print('Average Score: ', avg)
-    print('Max Score: ', max(scores))
+    print('Max Score: ', max(scores)) """
 
     sys.exit()
