@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+# !/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import sys, random
@@ -159,13 +159,14 @@ class Tetris(QMainWindow):
                     nextState = (nextGameState.contour, nextGameState.currentShape.shape)
                     maxHeight1 = max(gameState.get_bumpyness())
                     maxHeight2 = max(nextGameState.get_bumpyness())
-                    sumHoles1 = gameState.holes
-                    sumHoles2 = nextGameState.holes
+                    sumHoles1 = sum(gameState.holes)
+                    sumHoles2 = sum(nextGameState.holes)
                     reward = 0
                     if maxHeight2 > maxHeight1:
-                        reward -= 100 * (maxHeight2 > maxHeight1)
+                        reward -= 100 * (maxHeight2 - maxHeight1)
                     if sumHoles2 > sumHoles1:
-                        reward -= 40 * (sumHoles2 > sumHoles1)
+                        reward -= 40 * (sumHoles2 - sumHoles1)
+                    reward += lines ** 2
                     TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
 
                 self.tboard.score += lines
@@ -271,7 +272,7 @@ class SidePanel(QFrame):
 
 class Board(QFrame):
     msg2Statusbar = pyqtSignal(str)
-    speed = 1
+    speed = 10
 
     def __init__(self, parent, gridSize):
         super().__init__(parent)
@@ -311,28 +312,77 @@ class Board(QFrame):
 EXIT = False
 if __name__ == '__main__':
     # random.seed(32)
+    import pandas as pd
+    import pickle
+    import os
+
+    # Read from file
+    """Uncomment this and set TETRIS_AI.qvs to qvalues to keep previous training data"""
+    # qvalues = None
+    # if os.path.getsize('qvalues.pickle') > 0:
+    #     f_myfile = open('qvalues.pickle', 'rb')
+    #     qvalues = pickle.load(f_myfile)  # variables come out in the order you put them in
+    #     f_myfile.close()
+    # if qvalues:
+    #     print(qvalues)
+    # exit()
+
+EXIT = False
+if __name__ == '__main__':
+    # random.seed(32)
+    import pandas as pd
+    from datetime import datetime
+    data = []
     run = 0
-    for i in range(100):
-        mean_shapes = 0
-        max_score = []
-        for _ in range(20):
-            run += 1
-            app = QApplication([])
-            tetris = Tetris()
-            app.exec_()
-            if EXIT:
-                break
-            # print(mT, agent.weights)
-            mean_shapes += tetris.shapesPlaced
-            max_score.append(tetris.tboard.score)
-            del app
-        print('###############################')
-        print('{} Runs'.format(run))
-        print('Average Shapes: ', mean_shapes / 20)
-        print('Max Score: ', max(max_score))
-        print('Average Score: ', sum(max_score)/ len(max_score))
-        print('States in Q: ', len(TETRIS_AI.qvs))
-        print('###############################', end='\n\n\n')
+    while True:
+        for i in range(2):
+            mean_shapes = 0
+            max_score = []
+            for _ in range(20):
+                run += 1
+                if run == 500:
+                    TETRIS_AI.epsilon = 0.5
+                if run == 1000:
+                    TETRIS_AI.epsilon = 0.25
+                if run == 1200:
+                    TETRIS_AI.epsilon = 0.125
+                if run == 1500:
+                    TETRIS_AI.epsilon = 0.06
+                if run > 1750:
+                    TETRIS_AI.epsilon = 0.001
+                app = QApplication([])
+                tetris = Tetris()
+                app.exec_()
+                if EXIT:
+                    break
+                # print(mT, agent.weights)
+                mean_shapes += tetris.shapesPlaced
+                max_score.append(tetris.tboard.score)
+                del app
+            avg = sum(max_score)/ len(max_score)
+            print('###############################')
+            data.append({'Runs': run, 'Avg Shapes': mean_shapes, 'MaxScore': max(max_score), 'AvgScore': avg, 'TotalStates': len(TETRIS_AI.qvs)})
+            print('{} Runs'.format(run))
+            print('Average Shapes: ', mean_shapes / 20)
+            print('Max Score: ', max(max_score))
+            print('Average Score: ', avg)
+            print('States in Q: ', len(TETRIS_AI.qvs))
+            print('###############################', end='\n\n\n')
+
+        time = datetime.now().strftime('_%H-%M')
+        df = pd.DataFrame(data=data)
+        df.set_index('Runs', inplace=True)
+        df.to_csv('/Users/dannyosafo/Desktop/LearningResults{}.csv'.format(time))
+
+    # import csv
+    # for key in TETRIS_AI.qvs.keys():
+    #     d = {'ContourIndex': key[0], 'Shape': key[1], ''}
+    #     d['ContourIndex'] = key[0]
+    #     d['']
+    # my_dict = TETRIS_AI.qvs
+    # with open('C:/Users/Augie/Desktop/Policy{}.csv'.format(time), 'w') as f:
+    #     for key in my_dict.keys():
+    #         f.write("%s,%s\n" % (key, my_dict[key]))
     sys.exit()
 
 """    scores = []

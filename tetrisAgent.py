@@ -106,11 +106,12 @@ class QLearner(TetrisAI):
     def __init__(self):
         super().__init__()
         self.qvs = {}  # May need to use a Counter instead
-        self.epsilon = 0.01
+        self.epsilon = 0.7
         self.alpha = 0.2
-        self.discount = 0.8
+        self.discount = 0.91
         self.episodeRewards = 0
         self.e = {}
+        self.chosen = 0
 
     def incrementE(self, stateKey):
         if stateKey in self.e.keys():
@@ -182,6 +183,7 @@ class QLearner(TetrisAI):
                 best_action = action
         if unseen:
             return random.choice(positiveOrZero)
+        self.chosen += 1
         return best_action
         # moves = {}
         # for move in state.get_legal_moves():
@@ -196,7 +198,7 @@ class QLearner(TetrisAI):
         if randy > self.epsilon:
             return random.choice(legal)
         else:
-            return self.policy(state)
+            return self.get_policy(state)
 
     def update(self, state, move, nextState, reward):
         # How do we get the next state?
