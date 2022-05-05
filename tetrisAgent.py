@@ -15,9 +15,6 @@ class GameState:
         self.bumps = self.get_bumpyness()
         self.holes = self.get_holes()
         self.linesCleared = 0
-        #self.heightDifferences = self.get_relation()
-        self.subwells = self.get_subwells()
-        self.isMirror = self.mirror()
 
     def get_bumpyness(self):
         """Returns a list of each column's highest shape. 0 is the top of the board
@@ -109,23 +106,17 @@ class QLearner(TetrisAI):
     def __init__(self):
         super().__init__()
         self.qvs = {}  # May need to use a Counter instead
-        self.epsilon = 0.001
+        self.epsilon = 0.01
         self.alpha = 0.2
         self.discount = 0.8
         self.episodeRewards = 0
-        self.seen = 0
-        self.transitions = []
+        self.e = {}
 
-    def get_state(self, gameState):
-        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
-        shape1 = BOARD_DATA.currentShape
-        shape2 = BOARD_DATA.nextShape
-        gameState = GameState(board, shape1, shape2)
-        state = (gameState.get_relation(), gameState.currentShape.shape)
-        transitions.append(state)
-        return state
-
-
+    def incrementE(self, stateKey):
+        if stateKey in self.e.keys():
+            self.e[stateKey] += 1
+        else:
+            self.e[stateKey] = 1
 
     def getLegalActions(self, state):
         shape = Shape(state[1])
@@ -148,6 +139,9 @@ class QLearner(TetrisAI):
         self.episodeRewards += deltaReward
         self.update(state, action, nextState, deltaReward)
 
+    def weights(self):
+        return self.weights
+
     def getAction(self, state):
         legalActions = self.getLegalActions(state)
         if len(legalActions) == 0:
@@ -160,7 +154,6 @@ class QLearner(TetrisAI):
 
     def get_qv(self, stateKey):
         if stateKey in self.qvs:
-            self.seen += 1
             return self.qvs[stateKey]
         else:
             return 0.0
@@ -205,40 +198,28 @@ class QLearner(TetrisAI):
         else:
             return self.policy(state)
 
-
-    def reward(self, state, transitions):
-        reward = 0
-        for state in transitions:
-            nextState = self.nextState
-            preHeight = max(state)
-            postHeight = max(nextState.bumps)
-            preHoles = gameState.get_holes
-            postHoles = nextState.holes
-            if postHeight > preHeight:
-                reward -= 100
-            if postholes > preHoles:
-                reward -= 40
-        return reward
-
-
     def update(self, state, move, nextState, reward):
         # How do we get the next state?
         stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
-        q = self.get_qv(stateKey)
+        q1 = self.get_qv(stateKey)
         legalActions = self.getLegalActions(nextState)
         if len(legalActions) == 0:
             nextQValue = 0
         else:
             nextQValue = float('-inf')
             for move in legalActions:
-                stateKey = self.calculate_index(nextState[0][0], state[1], move[0], move[1])
-                q = self.get_qv(stateKey)
-                if nextQValue < q:
-                    nextQValue = q
+                nextStateKey = self.calculate_index(nextState[0][0], state[1], move[0], move[1])
+                q2 = self.get_qv(nextStateKey)
+                if nextQValue < q2:
+                    nextQValue = q2
+            # delta = reward + self.discount * nextQValue - q1
+            # for stateKey in self.e.keys():
+
+            # self.incrementE(stateKey)
         samp = reward + self.discount * nextQValue
 
         stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
-        self.qvs[stateKey] = (1 - self.alpha) * q + self.alpha * samp
+        self.qvs[stateKey] = (1 - self.alpha) * q1 + self.alpha * samp
         # value = self.get_value(nextState)
         # new_q = (1-self.alpha) * q + self.alpha * (score + self.discount*value)
         # self.qvs[(state, move)] = new_q
@@ -271,10 +252,7 @@ class SimpleTetrisAI(object):
             if nextScore < minScore or bestAction is None:
                 minScore = nextScore
                 bestAction = action
-        print("bumps", gameState.bumps)
-        print("rbumps", gameState.get_relation())
-        print('subwells: ', gameState.get_subwells())
-        print('mirror: ', gameState.isMirror)
+
         return bestAction
 
     def nextState(self, gameState, action):
@@ -299,6 +277,7 @@ class SimpleTetrisAI(object):
     def dropShapeByDistance(self, data, shape, direction, x0, dist):
         for x, y in shape.getCoords(direction, x0, 0):
             data[y + dist, x] = shape.shape
+
 
 
 # TETRIS_AI = TetrisAI()

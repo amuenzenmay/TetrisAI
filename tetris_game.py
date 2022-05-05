@@ -28,7 +28,7 @@ class Tetris(QMainWindow):
 
     def initUI(self):
         self.gridSize = 20
-        self.speed = 500
+        self.speed = 1
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)
@@ -161,7 +161,11 @@ class Tetris(QMainWindow):
                     maxHeight2 = max(nextGameState.get_bumpyness())
                     sumHoles1 = gameState.holes
                     sumHoles2 = nextGameState.holes
-                    reward = -100 * (maxHeight2 > maxHeight1) - 40 * (sumHoles2 > sumHoles1)
+                    reward = 0
+                    if maxHeight2 > maxHeight1:
+                        reward -= 100 * (maxHeight2 > maxHeight1)
+                    if sumHoles2 > sumHoles1:
+                        reward -= 40 * (sumHoles2 > sumHoles1)
                     TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
 
                 self.tboard.score += lines
@@ -210,6 +214,10 @@ class Tetris(QMainWindow):
             global EXIT
             EXIT = True
             app.quit()
+        elif key == Qt.Key_S:
+            self.speed -= 5
+        elif key == Qt.Key_W:
+            self.speed += 5
         else:
             super(Tetris, self).keyPressEvent(event)
 
@@ -263,7 +271,7 @@ class SidePanel(QFrame):
 
 class Board(QFrame):
     msg2Statusbar = pyqtSignal(str)
-    speed = 10
+    speed = 1
 
     def __init__(self, parent, gridSize):
         super().__init__(parent)
@@ -303,9 +311,12 @@ class Board(QFrame):
 EXIT = False
 if __name__ == '__main__':
     # random.seed(32)
+    run = 0
     for i in range(100):
         mean_shapes = 0
+        max_score = []
         for _ in range(20):
+            run += 1
             app = QApplication([])
             tetris = Tetris()
             app.exec_()
@@ -313,9 +324,15 @@ if __name__ == '__main__':
                 break
             # print(mT, agent.weights)
             mean_shapes += tetris.shapesPlaced
+            max_score.append(tetris.tboard.score)
             del app
-        print(mean_shapes / 20)
-        print(len(TETRIS_AI.qvs))
+        print('###############################')
+        print('{} Runs'.format(run))
+        print('Average Shapes: ', mean_shapes / 20)
+        print('Max Score: ', max(max_score))
+        print('Average Score: ', sum(max_score)/ len(max_score))
+        print('States in Q: ', len(TETRIS_AI.qvs))
+        print('###############################', end='\n\n\n')
     sys.exit()
 
 """    scores = []
@@ -340,4 +357,3 @@ if __name__ == '__main__':
     # avg = sum(scores) / (game - 1)
     # print('Average Score: ', avg)
     # print('Max Score: ', max(scores))"""
-
