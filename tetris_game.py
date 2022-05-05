@@ -159,9 +159,14 @@ class Tetris(QMainWindow):
                     nextState = (nextGameState.contour, nextGameState.currentShape.shape)
                     maxHeight1 = max(gameState.get_bumpyness())
                     maxHeight2 = max(nextGameState.get_bumpyness())
-                    sumHoles1 = gameState.holes
-                    sumHoles2 = nextGameState.holes
-                    reward = -100 * (maxHeight2 > maxHeight1) - 40 * (sumHoles2 > sumHoles1)
+                    sumHoles1 = sum(gameState.holes)
+                    sumHoles2 = sum(nextGameState.holes)
+                    reward = 0
+                    if maxHeight2 > maxHeight1:
+                        reward -= 100 * (maxHeight2 - maxHeight1)
+                    if sumHoles2 > sumHoles1:
+                        reward -= 40 * (sumHoles2 - sumHoles1)
+                    reward += lines ** 2
                     TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
 
                 self.tboard.score += lines
@@ -307,12 +312,24 @@ class Board(QFrame):
 EXIT = False
 if __name__ == '__main__':
     # random.seed(32)
+    import pandas as pd
+    data = []
     run = 0
-    for i in range(100):
+    for i in range(2):
         mean_shapes = 0
         max_score = []
         for _ in range(20):
             run += 1
+            if run == 500:
+                TETRIS_AI.epsilon = 0.6
+            if run == 1000:
+                TETRIS_AI.epsilon = 0.4
+            if run == 1200:
+                TETRIS_AI.epsilon = 0.2
+            if run == 1500:
+                TETRIS_AI.epsilon = 0.01
+            if run > 1750:
+                TETRIS_AI.epsilon = 0.001
             app = QApplication([])
             tetris = Tetris()
             app.exec_()
@@ -322,13 +339,26 @@ if __name__ == '__main__':
             mean_shapes += tetris.shapesPlaced
             max_score.append(tetris.tboard.score)
             del app
+        avg = sum(max_score)/ len(max_score)
         print('###############################')
+        data.append({'Runs': run, 'Avg Shapes': mean_shapes, 'MaxScore': max_score, 'AvgScore': avg, 'TotalStates': len(TETRIS_AI.qvs)})
         print('{} Runs'.format(run))
         print('Average Shapes: ', mean_shapes / 20)
         print('Max Score: ', max(max_score))
-        print('Average Score: ', sum(max_score)/ len(max_score))
+        print('Average Score: ', avg)
         print('States in Q: ', len(TETRIS_AI.qvs))
         print('###############################', end='\n\n\n')
+
+    df = pd.DataFrame(data=data)
+    df.set_index('Runs', inplace=True)
+    df.to_csv('C:/Users/Augie/Desktop/LearningResults1.csv')
+
+    import csv
+
+    my_dict = TETRIS_AI.qvs
+    with open('test.csv', 'w') as f:
+        for key in my_dict.keys():
+            f.write("%s,%s\n" % (key, my_dict[key]))
     sys.exit()
 
 """    scores = []
