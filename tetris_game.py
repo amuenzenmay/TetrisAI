@@ -313,6 +313,21 @@ EXIT = False
 if __name__ == '__main__':
     # random.seed(32)
     import pandas as pd
+    import pickle
+    import os
+
+    # Read from file
+    """Uncomment this and set TETRIS_AI.qvs to qvalues to keep previous training data"""
+    # qvalues = None
+    # if os.path.getsize('qvalues.pickle') > 0:
+    #     f_myfile = open('qvalues.pickle', 'rb')
+    #     qvalues = pickle.load(f_myfile)  # variables come out in the order you put them in
+    #     f_myfile.close()
+    # if qvalues:
+    #     print(qvalues)
+    # exit()
+
+
     from datetime import datetime
     data = []
     run = 0
@@ -322,15 +337,15 @@ if __name__ == '__main__':
             max_score = []
             for _ in range(20):
                 run += 1
-                if run == 500:
+                if run == 2000:
                     TETRIS_AI.epsilon = 0.6
-                if run == 1000:
+                if run == 4000:
                     TETRIS_AI.epsilon = 0.4
-                if run == 1200:
+                if run == 6000:
                     TETRIS_AI.epsilon = 0.2
-                if run == 1500:
+                if run == 8000:
                     TETRIS_AI.epsilon = 0.01
-                if run > 1750:
+                if run > 10000:
                     TETRIS_AI.epsilon = 0.001
                 app = QApplication([])
                 tetris = Tetris()
@@ -355,6 +370,12 @@ if __name__ == '__main__':
         df = pd.DataFrame(data=data)
         df.set_index('Runs', inplace=True)
         df.to_csv('C:/Users/Augie/Desktop/LearningResults{}.csv'.format(time))
+
+        # Write to file
+        f_myfile = open('qvalues.pickle', 'wb')
+        pickle.dump(TETRIS_AI.qvs, f_myfile)
+        f_myfile.close()
+
 
     # import csv
     # for key in TETRIS_AI.qvs.keys():
