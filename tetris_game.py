@@ -1,18 +1,14 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import sys, random
+import sys
 from PyQt5.QtWidgets import QMainWindow, QFrame, QDesktopWidget, QApplication, QHBoxLayout, QLabel
 from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal
 from PyQt5.QtGui import QPainter, QColor
 
 from tetris_model import BOARD_DATA, Shape
-# from tetris_ai import TETRIS_AI
 from tetrisAgent import TETRIS_AI, GameState
 import numpy as np
-
-
-# TETRIS_AI = None
 
 class Tetris(QMainWindow):
     def __init__(self):
@@ -27,7 +23,7 @@ class Tetris(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.gridSize = 20
+        self.gridSize = 10
         self.speed = 1
 
         self.timer = QBasicTimer()
@@ -311,8 +307,8 @@ if __name__ == '__main__':
     # Read from file
     """Uncomment this and set TETRIS_AI.qvs to qvalues to keep previous training data"""
     # qvalues = None
-    # if os.path.getsize('qvalues.pickle') > 0:
-    #     f_myfile = open('qvalues.pickle', 'rb')
+    # if os.path.getsize('qvs.pickle') > 0:
+    #     f_myfile = open('qvs.pickle', 'rb')
     #     qvalues = pickle.load(f_myfile)  # variables come out in the order you put them in
     #     f_myfile.close()
     # if qvalues:
@@ -323,29 +319,26 @@ if __name__ == '__main__':
 
     from datetime import datetime
     data = []
-    run =0
+    run = 0
     while True:
         for _ in range(5):
             mean_shapes = 0
             max_score = []
             for _ in range(20):
                 run += 1
-                # if run >= 2000:
-                #     TETRIS_AI.epsilon = 0.6
-                # if run == 4000:
-                #     TETRIS_AI.epsilon = 0.4
-                # if run == 6000:
-                #     TETRIS_AI.epsilon = 0.2
-                # if run == 8000:
-                #     TETRIS_AI.epsilon = 0.01
-                if run > 1400:
+                if run >= 2000:
+                    TETRIS_AI.epsilon = 0.45
+                if run == 4000:
+                    TETRIS_AI.epsilon = 0.4
+                if run == 6000:
+                    TETRIS_AI.epsilon = 0.2
+                if run > 8000:
                     TETRIS_AI.epsilon = 0.01
                 app = QApplication([])
                 tetris = Tetris()
                 app.exec_()
                 if EXIT:
                     break
-                # print(mT, agent.weights)
                 mean_shapes += tetris.shapesPlaced
                 max_score.append(tetris.tboard.score)
                 del app
@@ -363,45 +356,12 @@ if __name__ == '__main__':
         time = datetime.now().strftime('_%H-%M')
         df = pd.DataFrame(data=data)
         df.set_index('Runs', inplace=True)
-        df.to_csv('C:/Users/Miles/Desktop/Learn/TetrisLearning2.csv')
+        df.to_csv('C:/Users/mpei3/Desktop/Learn/tl.csv')
 
         # Write to file
-        f_myfile = open('qvalues.pickle', 'wb')
+        f_myfile = open('qvs.pickle', 'wb')
         pickle.dump(TETRIS_AI.qvs, f_myfile)
         f_myfile.close()
 
-
-    # import csv
-    # for key in TETRIS_AI.qvs.keys():
-    #     d = {'ContourIndex': key[0], 'Shape': key[1], ''}
-    #     d['ContourIndex'] = key[0]
-    #     d['']
-    # my_dict = TETRIS_AI.qvs
-    # with open('C:/Users/Augie/Desktop/Policy{}.csv'.format(time), 'w') as f:
-    #     for key in my_dict.keys():
-    #         f.write("%s,%s,%s,%s,%s\n" % (key[0],key[1], key[2], key[3], my_dict[key]))
     sys.exit()
-
-"""    scores = []
-    game = 0
-    total = 3000
-    while game <= total:
-        game += 1
-        app = QApplication([])
-        tetris = Tetris()
-        app.exec_()
-        if EXIT:
-            break
-        print('Game {} final fcore: {}'.format(game, tetris.tboard.score))
-        scores.append(tetris.tboard.score)
-        del app
-        # del tetris
-    #     print(len(TETRIS_AI.qvs.keys()))
-    #     if game % 100 == 0:
-    #         TETRIS_AI.epsilon *= 0.95
-    #         print(TETRIS_AI.seen)
-    #         print(TETRIS_AI.epsilon)
-    # avg = sum(scores) / (game - 1)
-    # print('Average Score: ', avg)
-    # print('Max Score: ', max(scores))"""
 
