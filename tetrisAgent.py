@@ -1,7 +1,5 @@
 from tetris_model import BOARD_DATA, Shape
-import numpy as np
 import random
-
 
 class GameState:
     def __init__(self, board, shape, nextShape=None):
@@ -26,6 +24,8 @@ class GameState:
         return tuple(bumps)
 
     def get_contours(self):
+        """Returns a tuple of integers ranged 0-6 representing the height diff between
+        a column and subsequent columns."""
         bumps = self.get_bumpyness()
         wells = [(bumps[i], bumps[i+1], bumps[i+2], bumps[i+3], bumps[i+4]) for i in range(BOARD_DATA.width - 4)]
         contour = []
@@ -42,6 +42,7 @@ class GameState:
         return tuple(contour)
 
     def get_holes(self):
+        """Returns a tuple containing the amount of holes in each column."""
         holes = [0] * BOARD_DATA.width
         for col in range(BOARD_DATA.width):
             for row in range(BOARD_DATA.height - 1, BOARD_DATA.height - 1 - self.bumps[col], -1):
@@ -49,30 +50,12 @@ class GameState:
                     holes[col] += 1
         return tuple(holes)
 
-
-""" class TetrisAI(object):
-    def __init__(self):
-        pass
-    def score(self, state):
-        pass
-    def nextMove(self, gameState):
-        if gameState.nextShape == Shape.shapeNone:
-            return None
-        legalMoves = gameState.get_legal_moves()
-        random.shuffle(legalMoves)
-        print('subwells: ', gameState.newSubwells)
-        print(gameState.get_contour())
-        d, x = legalMoves[0]
-        return (d, x, 0) """
-
-
 class QLearner():
     def __init__(self):
-        self.qvs = {}  # May need to use a Counter instead
-        self.epsilon = 0.05
+        self.qvs = {}  
+        self.epsilon = 0.5
         self.alpha = 0.7
         self.discount = 0.8
-        self.episodeRewards = 0
         self.e = {}
         self.chosen = 0
 
@@ -93,14 +76,13 @@ class QLearner():
 
         legalMoves = []
         for d in directions:
-            minX, maxX, minY, maxY = shape.getBoundingOffsets(d)
+            minX, maxX, _, _ = shape.getBoundingOffsets(d)
             validX = list(range(-minX, BOARD_DATA.width - maxX))
             for x in validX:
                 legalMoves.append((d, x))
         return legalMoves
 
     def observeTransition(self, state, action, nextState, deltaReward):
-        self.episodeRewards += deltaReward
         self.update(state, action, nextState, deltaReward)
 
     def getAction(self, state):
