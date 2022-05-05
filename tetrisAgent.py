@@ -46,6 +46,7 @@ class GameState:
 
     def calculate_index(self, contour, shape, x0, d0):
         index = 0
+        print('Contour: ', contour)
         index += (contour[0] + 7*contour[1] + 49*contour[2] + 343 * contour[3])
         return index, shape, x0, d0
 
@@ -61,7 +62,7 @@ class GameState:
         if self.currentShape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
             directions = [0, 1]
         elif self.currentShape.shape == Shape.shapeO:
-            directions = [0, ]
+            directions = [0]
         else:
             directions = [0, 1, 2, 3]
 
@@ -106,7 +107,7 @@ class QLearner(TetrisAI):
     def __init__(self):
         super().__init__()
         self.qvs = {}  # May need to use a Counter instead
-        self.epsilon = 0.7
+        self.epsilon = 0.05
         self.alpha = 0.2
         self.discount = 0.8
         self.episodeRewards = 0
@@ -124,7 +125,7 @@ class QLearner(TetrisAI):
         if shape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
             directions = [0, 1]
         elif shape.shape == Shape.shapeO:
-            directions = [0, ]
+            directions = [0]
         else:
             directions = [0, 1, 2, 3]
 
@@ -202,6 +203,7 @@ class QLearner(TetrisAI):
 
     def update(self, state, move, nextState, reward):
         # How do we get the next state?
+        print('Move in update: ', move)
         stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
         q1 = self.get_qv(stateKey)
         legalActions = self.getLegalActions(nextState)
@@ -209,8 +211,9 @@ class QLearner(TetrisAI):
             nextQValue = 0
         else:
             nextQValue = float('-inf')
-            for move in legalActions:
-                nextStateKey = self.calculate_index(nextState[0][0], state[1], move[0], move[1])
+            # print(legalActions)
+            for action in legalActions:
+                nextStateKey = self.calculate_index(nextState[0][0], state[1], action[0], action[1])
                 q2 = self.get_qv(nextStateKey)
                 if nextQValue < q2:
                     nextQValue = q2
@@ -221,6 +224,9 @@ class QLearner(TetrisAI):
         samp = reward + self.discount * nextQValue
 
         stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
+        qval = (1 - self.alpha) * q1 + self.alpha * samp
+        # print(stateKey[0], stateKey[1], stateKey[2], stateKey[3], qval)
+        print('Contour: {}\nShape: {}\nDirection: {}\nXValue: {}\nQVal: {}'.format(stateKey[0], stateKey[1], stateKey[2], stateKey[3], qval))
         self.qvs[stateKey] = (1 - self.alpha) * q1 + self.alpha * samp
         # value = self.get_value(nextState)
         # new_q = (1-self.alpha) * q + self.alpha * (score + self.discount*value)
@@ -232,10 +238,11 @@ class QLearner(TetrisAI):
     def get_value(self, state):
         return self.val_from_qvs(state)
 
-    def calculate_index(self, contour, shape, x0, d0):
+    def calculate_index(self, contour, shape, d0, x0):
         index = 0
+        # print('Contour: ', contour)
         index += (contour[0] + 7*contour[1] + 49*contour[2] + 343 * contour[3])
-        return index, shape, x0, d0
+        return index, shape, d0, x0
 
 
 class SimpleTetrisAI(object):
@@ -244,7 +251,7 @@ class SimpleTetrisAI(object):
             print("NEXT SHAPE IS NONE")
             return None
         # print('Bumps: ', gameState.bumps)
-        print(gameState.get_contour())
+        # print(gameState.get_contour())
         legalMoves = gameState.get_legal_moves()
         minScore = float('inf')
         bestAction = None

@@ -28,7 +28,7 @@ class Tetris(QMainWindow):
 
     def initUI(self):
         self.gridSize = 20
-        self.speed = 1
+        self.speed = 100
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)
@@ -126,6 +126,7 @@ class Tetris(QMainWindow):
             gameState = GameState(board, shape1, shape2)
             state = (gameState.contour, gameState.currentShape.shape)
 
+
             if TETRIS_AI and not self.nextMove:
                 # self.nextMove = TETRIS_AI.nextMove(gameState) # Decision for simple
                 self.nextMove = TETRIS_AI.getAction(state)
@@ -142,6 +143,8 @@ class Tetris(QMainWindow):
                     elif BOARD_DATA.currentX < self.nextMove[1]:
                         BOARD_DATA.moveRight()
                     k += 1
+                # print('Next Move: ', self.nextMove)
+                # print('Current X, Y: ({}, {})'.format(BOARD_DATA.currentX, BOARD_DATA.currentY))
 
             # lines = BOARD_DATA.dropDown()
             lines, merged = BOARD_DATA.moveDown()  # Move to the next State
@@ -167,8 +170,12 @@ class Tetris(QMainWindow):
                     if sumHoles2 > sumHoles1:
                         reward -= 40 * (sumHoles2 - sumHoles1)
                     reward += lines ** 2
+                    # TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
+                    # print('##################')
+                    # print('Next Move: ', self.nextMove)
+                    # print('Current X, Y: ({}, {})'.format(BOARD_DATA.currentX, BOARD_DATA.currentY))
+                    # print('##################', end='\n\n')
                     TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
-
                 self.tboard.score += lines
                 if self.lastShape != BOARD_DATA.currentShape:
                     self.nextMove = None
@@ -324,29 +331,30 @@ if __name__ == '__main__':
     #     qvalues = pickle.load(f_myfile)  # variables come out in the order you put them in
     #     f_myfile.close()
     # if qvalues:
-    #     print(qvalues)
-    # exit()
+    #     TETRIS_AI.qvs = qvalues
+    #     print('Read in q vlaues')
+
 
 
     from datetime import datetime
     data = []
-    run = 0
+    run =8000
     while True:
-        for i in range(2):
+        for _ in range(5):
             mean_shapes = 0
             max_score = []
             for _ in range(20):
                 run += 1
-                if run == 2000:
-                    TETRIS_AI.epsilon = 0.6
-                if run == 4000:
-                    TETRIS_AI.epsilon = 0.4
-                if run == 6000:
-                    TETRIS_AI.epsilon = 0.2
-                if run == 8000:
+                # if run >= 2000:
+                #     TETRIS_AI.epsilon = 0.6
+                # if run == 4000:
+                #     TETRIS_AI.epsilon = 0.4
+                # if run == 6000:
+                #     TETRIS_AI.epsilon = 0.2
+                # if run == 8000:
+                #     TETRIS_AI.epsilon = 0.01
+                if run > 1400:
                     TETRIS_AI.epsilon = 0.01
-                if run > 10000:
-                    TETRIS_AI.epsilon = 0.001
                 app = QApplication([])
                 tetris = Tetris()
                 app.exec_()
@@ -366,15 +374,16 @@ if __name__ == '__main__':
             print('States in Q: ', len(TETRIS_AI.qvs))
             print('###############################', end='\n\n\n')
 
-        time = datetime.now().strftime('_%H-%M')
-        df = pd.DataFrame(data=data)
-        df.set_index('Runs', inplace=True)
-        df.to_csv('C:/Users/Augie/Desktop/LearningResults{}.csv'.format(time))
-
-        # Write to file
-        f_myfile = open('qvalues.pickle', 'wb')
-        pickle.dump(TETRIS_AI.qvs, f_myfile)
-        f_myfile.close()
+        # print("SAVE DATA")
+        # time = datetime.now().strftime('_%H-%M')
+        # df = pd.DataFrame(data=data)
+        # df.set_index('Runs', inplace=True)
+        # df.to_csv('C:/Users/Augie/Desktop/TetrisLearning2.csv')
+        #
+        # # Write to file
+        # f_myfile = open('qvalues.pickle', 'wb')
+        # pickle.dump(TETRIS_AI.qvs, f_myfile)
+        # f_myfile.close()
 
 
     # import csv
@@ -385,7 +394,7 @@ if __name__ == '__main__':
     # my_dict = TETRIS_AI.qvs
     # with open('C:/Users/Augie/Desktop/Policy{}.csv'.format(time), 'w') as f:
     #     for key in my_dict.keys():
-    #         f.write("%s,%s\n" % (key, my_dict[key]))
+    #         f.write("%s,%s,%s,%s,%s\n" % (key[0],key[1], key[2], key[3], my_dict[key]))
     sys.exit()
 
 """    scores = []
