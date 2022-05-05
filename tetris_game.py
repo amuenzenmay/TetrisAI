@@ -22,6 +22,7 @@ class Tetris(QMainWindow):
         self.gameOver = False
         self.nextMove = None
         self.lastShape = Shape.shapeNone
+        self.shapesPlaced = 0
 
         self.initUI()
 
@@ -123,12 +124,12 @@ class Tetris(QMainWindow):
             shape1 = BOARD_DATA.currentShape
             shape2 = BOARD_DATA.nextShape
             gameState = GameState(board, shape1, shape2)
-            state = (gameState.bumps, gameState.holes, gameState.currentShape.shape)
+            state = (gameState.contour, gameState.currentShape.shape)
 
             if TETRIS_AI and not self.nextMove:
-                # self.nextMove = TETRIS_AI.nextMove(state) # Decision for simple
-                #self.nextMove = TETRIS_AI.getAction(state)
-                self.nextMove = TETRIS_AI.nextMove(gameState)
+                # self.nextMove = TETRIS_AI.nextMove(gameState) # Decision for simple
+                self.nextMove = TETRIS_AI.getAction(state)
+                # self.nextMove = TETRIS_AI.nextMove()
             if self.nextMove:
                 k = 0
                 while BOARD_DATA.currentDirection != self.nextMove[0] and k < 4:
@@ -149,14 +150,19 @@ class Tetris(QMainWindow):
             if lines is not None:
                 # Get next state and reward
                 if merged:
+                    self.shapesPlaced += 1
                     board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
                     shape1 = BOARD_DATA.currentShape
                     shape2 = BOARD_DATA.nextShape
 
                     nextGameState = GameState(board, shape1, shape2)
-                    nextState = (nextGameState.bumps, nextGameState.holes, nextGameState.currentShape.shape)
-                    reward = lines ** 2  # - (max(nextState[0]) - max(state[0])) - (sum(nextState[1]) - sum(state[1]))
-                    # TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
+                    nextState = (nextGameState.contour, nextGameState.currentShape.shape)
+                    maxHeight1 = max(gameState.get_bumpyness())
+                    maxHeight2 = max(nextGameState.get_bumpyness())
+                    sumHoles1 = gameState.holes
+                    sumHoles2 = nextGameState.holes
+                    reward = -100 * (maxHeight2 > maxHeight1) - 40 * (sumHoles2 > sumHoles1)
+                    TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
 
                 self.tboard.score += lines
                 if self.lastShape != BOARD_DATA.currentShape:
@@ -297,7 +303,22 @@ class Board(QFrame):
 EXIT = False
 if __name__ == '__main__':
     # random.seed(32)
-    scores = []
+    for i in range(100):
+        mean_shapes = 0
+        for _ in range(20):
+            app = QApplication([])
+            tetris = Tetris()
+            app.exec_()
+            if EXIT:
+                break
+            # print(mT, agent.weights)
+            mean_shapes += tetris.shapesPlaced
+            del app
+        print(mean_shapes / 20)
+        print(len(TETRIS_AI.qvs))
+    sys.exit()
+
+"""    scores = []
     game = 0
     total = 3000
     while game <= total:
@@ -311,13 +332,12 @@ if __name__ == '__main__':
         scores.append(tetris.tboard.score)
         del app
         # del tetris
-    """    print(len(TETRIS_AI.qvs.keys()))
-        if game % 100 == 0:
-            TETRIS_AI.epsilon *= 0.95
-            print(TETRIS_AI.seen)
-            print(TETRIS_AI.epsilon)
-    avg = sum(scores) / (game - 1)
-    print('Average Score: ', avg)
-    print('Max Score: ', max(scores)) """
+    #     print(len(TETRIS_AI.qvs.keys()))
+    #     if game % 100 == 0:
+    #         TETRIS_AI.epsilon *= 0.95
+    #         print(TETRIS_AI.seen)
+    #         print(TETRIS_AI.epsilon)
+    # avg = sum(scores) / (game - 1)
+    # print('Average Score: ', avg)
+    # print('Max Score: ', max(scores))"""
 
-    sys.exit()

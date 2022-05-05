@@ -66,7 +66,7 @@ class Shape(object):
 
 
 class BoardData(object):
-    width = 5
+    width = 6
     height = 20
 
     def __init__(self):
@@ -195,3 +195,4 @@ class BoardData(object):
 
 
 BOARD_DATA = BoardData()
+DROP_SPOt = 3 # Five for the full 10 width game

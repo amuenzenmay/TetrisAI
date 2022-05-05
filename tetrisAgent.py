@@ -10,6 +10,8 @@ class GameState:
         self.currentShape = shape
         self.nextShape = nextShape
         self.board = board
+        self.contour = self.get_contours()
+        # self.mirror = self.mirror
         self.bumps = self.get_bumpyness()
         self.holes = self.get_holes()
         self.linesCleared = 0
@@ -29,43 +31,26 @@ class GameState:
                         bumps[col] = height
         return tuple(bumps)
 
-    def get_relation(self):
+    def get_contours(self):
         bumps = self.get_bumpyness()
-        relationalBumps = list(range(BOARD_DATA.width))
-        heightDifferences = [0] * BOARD_DATA.width
-        for col in range(len(relationalBumps)):
-            if col == 0:
-                relationalBumps[0] = (0, bumps[col + 1] - bumps[col])
-            elif col == BOARD_DATA.width - 1:
-                relationalBumps[BOARD_DATA.width-1] = (bumps[col] - bumps[col-1], 0)
-            else:
-                relationalBumps[col] = (bumps[col] - bumps[col - 1], bumps[col + 1] - bumps[col])
-        return relationalBumps
+        wells = [(bumps[i], bumps[i+1], bumps[i+2], bumps[i+3], bumps[i+4]) for i in range(BOARD_DATA.width - 4)]
+        contour = []
+        for subwell in wells:
+            temp = [0] * 4
+            for idx in range(len(subwell)-1):
+                diff = subwell[idx+1] - subwell[idx]
+                if diff > 3:
+                    diff = 3
+                if diff < -3:
+                    diff = -3
+                temp[idx] = diff + 3
+            contour.append(tuple(temp))
+        return tuple(contour)
 
-    def get_subwells(self):
-        subwells = []
-        bumps = self.get_relation()
-        for b in range(BOARD_DATA.width -4):
-            subwells.append((0, (bumps[b][1]), bumps[b + 1], bumps[b + 2], bumps[b + 3]))
-        return subwells
-
-
-
-    def mirror(self):
-        subwells = self.get_subwells()
-        same = False
-        mirror = False
-        for i, sub in enumerate(subwells):
-            for i, sub2 in enumerate(subwells):
-                if sub == sub2:
-                    same = True
-        return same, mirror
-
-
-    def get_normalized_bumpyness(self):
-        bumps = self.get_bumpyness()
-        minLevel = min(bumps)
-        return (b - minLevel for b in bumps)
+    def calculate_index(self, contour, shape, x0, d0):
+        index = 0
+        index += (contour[0] + 7*contour[1] + 49*contour[2] + 343 * contour[3])
+        return index, shape, x0, d0
 
     def get_holes(self):
         holes = [0] * BOARD_DATA.width
@@ -86,7 +71,8 @@ class GameState:
         legalMoves = []
         for d in directions:
             minX, maxX, minY, maxY = self.currentShape.getBoundingOffsets(d)
-            validX = list(range(-minX, BOARD_DATA.width - maxX))
+            # validX = list(range(-minX, BOARD_DATA.width - maxX))
+            validX = list(range(-minX, 5 - maxX))
             for x in validX:
                 legalMoves.append((d, x))
         return legalMoves
@@ -105,9 +91,15 @@ class TetrisAI(object):
         legalMoves = gameState.get_legal_moves()
         random.shuffle(legalMoves)
 
-        print('diff: ', gameState.heightDifferences)
-        print('subwells: ', gameState.subwells)
-        print('mirror: ', gameState.isMirror)
+        # heightDiffs = gameState.heightDiffs
+        # print('heightDiffs: ', heightDiffs)
+        # subwells = gameState.subwells
+        print('subwells: ', gameState.newSubwells)
+        # gameState.create_subwells()
+        # print(BOARD_DATA.backBoard)
+        print(gameState.get_contour())
+        # mirror = gameState.mirror
+        # print('mirror', mirror)
 
         d, x = legalMoves[0]
         return (d, x, 0)
@@ -117,9 +109,9 @@ class QLearner(TetrisAI):
     def __init__(self):
         super().__init__()
         self.qvs = {}  # May need to use a Counter instead
-        self.epsilon = 0.6
-        self.alpha = 0.8
-        self.discount = 0.9
+        self.epsilon = 0.001
+        self.alpha = 0.2
+        self.discount = 0.8
         self.episodeRewards = 0
         self.seen = 0
         self.transitions = []
@@ -136,7 +128,7 @@ class QLearner(TetrisAI):
 
 
     def getLegalActions(self, state):
-        shape = Shape(state[2])
+        shape = Shape(state[1])
         if shape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
             directions = [0, 1]
         elif shape.shape == Shape.shapeO:
@@ -166,10 +158,10 @@ class QLearner(TetrisAI):
         else:
             return self.move_from_qvs(state)
 
-    def get_qv(self, state, move):
-        if (state, move) in self.qvs:
+    def get_qv(self, stateKey):
+        if stateKey in self.qvs:
             self.seen += 1
-            return self.qvs[(state, move)]
+            return self.qvs[stateKey]
         else:
             return 0.0
 
@@ -186,7 +178,8 @@ class QLearner(TetrisAI):
         if len(legal_actions) == 0:
             return None
         for action in legal_actions:
-            qValue = self.get_qv(state, action)
+            stateKey = self.calculate_index(state[0][0], state[1], action[0], action[1])
+            qValue = self.get_qv(stateKey)
             if qValue >= 0:
                 if qValue == 0:
                     unseen = True
@@ -230,18 +223,22 @@ class QLearner(TetrisAI):
 
     def update(self, state, move, nextState, reward):
         # How do we get the next state?
-        q = self.get_qv(state, move)
+        stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
+        q = self.get_qv(stateKey)
         legalActions = self.getLegalActions(nextState)
         if len(legalActions) == 0:
             nextQValue = 0
         else:
             nextQValue = float('-inf')
             for move in legalActions:
-                q = self.get_qv(nextState, move)
+                stateKey = self.calculate_index(nextState[0][0], state[1], move[0], move[1])
+                q = self.get_qv(stateKey)
                 if nextQValue < q:
                     nextQValue = q
         samp = reward + self.discount * nextQValue
-        self.qvs[(state, move)] = (1 - self.alpha) * q + self.alpha * samp
+
+        stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
+        self.qvs[stateKey] = (1 - self.alpha) * q + self.alpha * samp
         # value = self.get_value(nextState)
         # new_q = (1-self.alpha) * q + self.alpha * (score + self.discount*value)
         # self.qvs[(state, move)] = new_q
@@ -252,6 +249,11 @@ class QLearner(TetrisAI):
     def get_value(self, state):
         return self.val_from_qvs(state)
 
+    def calculate_index(self, contour, shape, x0, d0):
+        index = 0
+        index += (contour[0] + 7*contour[1] + 49*contour[2] + 343 * contour[3])
+        return index, shape, x0, d0
+
 
 class SimpleTetrisAI(object):
     def nextMove(self, gameState):
@@ -259,7 +261,7 @@ class SimpleTetrisAI(object):
             print("NEXT SHAPE IS NONE")
             return None
         # print('Bumps: ', gameState.bumps)
-
+        print(gameState.get_contour())
         legalMoves = gameState.get_legal_moves()
         minScore = float('inf')
         bestAction = None
