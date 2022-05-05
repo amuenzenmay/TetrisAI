@@ -210,6 +210,10 @@ class Tetris(QMainWindow):
             global EXIT
             EXIT = True
             app.quit()
+        elif key == Qt.Key_S:
+            self.speed -= 5
+        elif key == Qt.Key_W:
+            self.speed += 5
         else:
             super(Tetris, self).keyPressEvent(event)
 
@@ -303,9 +307,12 @@ class Board(QFrame):
 EXIT = False
 if __name__ == '__main__':
     # random.seed(32)
+    run = 0
     for i in range(100):
         mean_shapes = 0
+        max_score = []
         for _ in range(20):
+            run += 1
             app = QApplication([])
             tetris = Tetris()
             app.exec_()
@@ -313,9 +320,15 @@ if __name__ == '__main__':
                 break
             # print(mT, agent.weights)
             mean_shapes += tetris.shapesPlaced
+            max_score.append(tetris.tboard.score)
             del app
-        print(mean_shapes / 20)
-        print(len(TETRIS_AI.qvs))
+        print('###############################')
+        print('{} Runs'.format(run))
+        print('Average Shapes: ', mean_shapes / 20)
+        print('Max Score: ', max(max_score))
+        print('Average Score: ', sum(max_score)/ len(max_score))
+        print('States in Q: ', len(TETRIS_AI.qvs))
+        print('###############################', end='\n\n\n')
     sys.exit()
 
 """    scores = []

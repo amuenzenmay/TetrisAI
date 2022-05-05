@@ -110,7 +110,13 @@ class QLearner(TetrisAI):
         self.alpha = 0.2
         self.discount = 0.8
         self.episodeRewards = 0
-        self.seen = 0
+        self.e = {}
+
+    def incrementE(self, stateKey):
+        if stateKey in self.e.keys():
+            self.e[stateKey] += 1
+        else:
+            self.e[stateKey] = 1
 
     def getLegalActions(self, state):
         shape = Shape(state[1])
@@ -148,7 +154,6 @@ class QLearner(TetrisAI):
 
     def get_qv(self, stateKey):
         if stateKey in self.qvs:
-            self.seen += 1
             return self.qvs[stateKey]
         else:
             return 0.0
@@ -196,21 +201,25 @@ class QLearner(TetrisAI):
     def update(self, state, move, nextState, reward):
         # How do we get the next state?
         stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
-        q = self.get_qv(stateKey)
+        q1 = self.get_qv(stateKey)
         legalActions = self.getLegalActions(nextState)
         if len(legalActions) == 0:
             nextQValue = 0
         else:
             nextQValue = float('-inf')
             for move in legalActions:
-                stateKey = self.calculate_index(nextState[0][0], state[1], move[0], move[1])
-                q = self.get_qv(stateKey)
-                if nextQValue < q:
-                    nextQValue = q
+                nextStateKey = self.calculate_index(nextState[0][0], state[1], move[0], move[1])
+                q2 = self.get_qv(nextStateKey)
+                if nextQValue < q2:
+                    nextQValue = q2
+            # delta = reward + self.discount * nextQValue - q1
+            # for stateKey in self.e.keys():
+
+            # self.incrementE(stateKey)
         samp = reward + self.discount * nextQValue
 
         stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
-        self.qvs[stateKey] = (1 - self.alpha) * q + self.alpha * samp
+        self.qvs[stateKey] = (1 - self.alpha) * q1 + self.alpha * samp
         # value = self.get_value(nextState)
         # new_q = (1-self.alpha) * q + self.alpha * (score + self.discount*value)
         # self.qvs[(state, move)] = new_q
