@@ -28,7 +28,7 @@ class Tetris(QMainWindow):
 
     def initUI(self):
         self.gridSize = 20
-        self.speed = 100
+        self.speed = 1
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)
@@ -279,7 +279,7 @@ class SidePanel(QFrame):
 
 class Board(QFrame):
     msg2Statusbar = pyqtSignal(str)
-    speed = 10
+    speed = 1
 
     def __init__(self, parent, gridSize):
         super().__init__(parent)
@@ -338,7 +338,7 @@ if __name__ == '__main__':
 
     from datetime import datetime
     data = []
-    run =8000
+    run =0
     while True:
         for _ in range(5):
             mean_shapes = 0
@@ -374,16 +374,16 @@ if __name__ == '__main__':
             print('States in Q: ', len(TETRIS_AI.qvs))
             print('###############################', end='\n\n\n')
 
-        # print("SAVE DATA")
-        # time = datetime.now().strftime('_%H-%M')
-        # df = pd.DataFrame(data=data)
-        # df.set_index('Runs', inplace=True)
-        # df.to_csv('C:/Users/Augie/Desktop/TetrisLearning2.csv')
-        #
-        # # Write to file
-        # f_myfile = open('qvalues.pickle', 'wb')
-        # pickle.dump(TETRIS_AI.qvs, f_myfile)
-        # f_myfile.close()
+        print("SAVE DATA")
+        time = datetime.now().strftime('_%H-%M')
+        df = pd.DataFrame(data=data)
+        df.set_index('Runs', inplace=True)
+        df.to_csv('C:/Users/Augie/Desktop/TetrisLearning2.csv')
+
+        # Write to file
+        f_myfile = open('qvalues.pickle', 'wb')
+        pickle.dump(TETRIS_AI.qvs, f_myfile)
+        f_myfile.close()
 
 
     # import csv

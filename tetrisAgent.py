@@ -203,7 +203,7 @@ class QLearner(TetrisAI):
 
     def update(self, state, move, nextState, reward):
         # How do we get the next state?
-        print('Move in update: ', move)
+        # print('Move in update: ', move)
         stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
         q1 = self.get_qv(stateKey)
         legalActions = self.getLegalActions(nextState)
@@ -226,7 +226,7 @@ class QLearner(TetrisAI):
         stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
         qval = (1 - self.alpha) * q1 + self.alpha * samp
         # print(stateKey[0], stateKey[1], stateKey[2], stateKey[3], qval)
-        print('Contour: {}\nShape: {}\nDirection: {}\nXValue: {}\nQVal: {}'.format(stateKey[0], stateKey[1], stateKey[2], stateKey[3], qval))
+        # print('Contour: {}\nShape: {}\nDirection: {}\nXValue: {}\nQVal: {}'.format(stateKey[0], stateKey[1], stateKey[2], stateKey[3], qval))
         self.qvs[stateKey] = (1 - self.alpha) * q1 + self.alpha * samp
         # value = self.get_value(nextState)
         # new_q = (1-self.alpha) * q + self.alpha * (score + self.discount*value)
