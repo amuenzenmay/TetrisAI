@@ -43,6 +43,6 @@ Pres `esc` to quit the game where it's at.
 Tetris shell commands for training and regular playing:
 
 ```shell
-$ python3 tetris_game.py train (+ number of sessions you want to train it for)
+$ python3 tetris_game.py train "+ number of training sessions(required)"
 $ python3 tetris_game.py
 ```
