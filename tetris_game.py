@@ -23,8 +23,8 @@ class Tetris(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.gridSize = 20
-        self.speed = 50
+        self.gridSize = 30
+        self.speed = 25
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)
@@ -86,9 +86,9 @@ class Tetris(QMainWindow):
         self.update()
 
     def train(self, gameState):
-        state = TETRIS_AI.state_from_gamestate(gameState)
-        if TETRIS_AI and not self.nextMove:
-            self.nextMove = TETRIS_AI.get_action(state)
+        state = agent.state_from_gamestate(gameState)
+        if agent and not self.nextMove:
+            self.nextMove = agent.get_action(state)
         if self.nextMove:
             # Put the shape into the correct orientation
             k = 0
@@ -112,9 +112,9 @@ class Tetris(QMainWindow):
                 shape1 = BOARD_DATA.currentShape
                 shape2 = BOARD_DATA.nextShape
                 nextGameState = GameState(board, shape1, shape2)
-                nextState = TETRIS_AI.state_from_gamestate(nextGameState)
-                reward = TETRIS_AI.get_reward(gameState, nextGameState, lines)
-                TETRIS_AI.observe_transitions(state, self.nextMove, nextState, reward)
+                nextState = agent.state_from_gamestate(nextGameState)
+                reward = agent.get_reward(gameState, nextGameState, lines)
+                agent.observe_transitions(state, self.nextMove, nextState, reward)
             self.tboard.score += lines
             if self.lastShape != BOARD_DATA.currentShape:
                 self.nextMove = None
@@ -125,9 +125,9 @@ class Tetris(QMainWindow):
             self.gameOver = True
 
     def play(self, gameState):
-        state = TETRIS_AI.state_from_gamestate(gameState)
-        if TETRIS_AI and not self.nextMove:
-            self.nextMove = TETRIS_AI.get_policy(state)
+        state = agent.state_from_gamestate(gameState)
+        if agent and not self.nextMove:
+            self.nextMove = agent.get_policy(state)
         if self.nextMove:
             # Put the shape into the correct orientation
             k = 0
@@ -144,6 +144,8 @@ class Tetris(QMainWindow):
         lines, merged = BOARD_DATA.moveDown()  # Move to the next State
 
         if lines is not None:
+            if merged:
+                self.shapesPlaced += 1
             self.tboard.score += lines
             if self.lastShape != BOARD_DATA.currentShape:
                 self.nextMove = None
@@ -164,7 +166,7 @@ class Tetris(QMainWindow):
             shape2 = BOARD_DATA.nextShape
             gameState = GameState(board, shape1, shape2)
 
-            if TETRIS_AI.train:
+            if agent.train:
                 self.train(gameState)
             else:
                 self.play(gameState)
@@ -306,14 +308,16 @@ def get_trained_values(path='qvaluesTrain1.pickle'):
         qvalues = pickle.load(f_myfile)  # variables come out in the order you put them in
         f_myfile.close()
     if qvalues:
-        TETRIS_AI.qvs = qvalues
+        agent.qvs = qvalues
     else:
         sys.exit('FAILED TO READ TRAINING DATA')
 
 def run_game():
     mean_shapes = 0
     max_score = []
+    runs = 0
     for _ in range(20):
+        runs += 1
         app = QApplication([])
         tetris = Tetris()
         app.exec_()
@@ -323,73 +327,53 @@ def run_game():
         max_score.append(tetris.tboard.score)
         del app
     avg = sum(max_score) / len(max_score)
-    print('Average Shapes: ', mean_shapes / 20)
+    print('Average Shapes: ', mean_shapes / runs)
     print('Max Score: ', max(max_score))
     print('Min Score: ', min(max_score))
     print('Average Score: ', avg)
-    print('States in Q: ', len(TETRIS_AI.qvs))
+    print('States in Q: ', len(agent.qvs))
+
+def train_ai(episodes):
+    run = 0
+    mean_shapes = 0
+    max_score = []
+    for _ in range(episodes):
+        run += 1
+        app = QApplication([])
+        tetris = Tetris()
+        app.exec_()
+        if EXIT:
+            break
+        mean_shapes += tetris.shapesPlaced
+        max_score.append(tetris.tboard.score)
+        del app
+    avg = sum(max_score) / len(max_score)
+    print('{} Runs'.format(run))
+    print('Average Shapes: ', mean_shapes / run)
+    print('Max Score: ', max(max_score))
+    print('Average Score: ', avg)
 
 EXIT = False
 if __name__ == '__main__':
     # random.seed(32)
     import pickle
     import os
+    episodes = 1000
     if len(sys.argv) <= 1:
         train = False
-    elif sys.argv[1] == 1:
+    elif len(sys.argv) == 2 and sys.argv[1] == 'train':
         train = True
+    elif len(sys.argv) == 3 and sys.argv[1] == 'train':
+        train = True
+        episodes = int(sys.argv[2])
     else:
         train = False
-    TETRIS_AI = QLearner(train=train)
+    agent = QLearner(train=train)
 
-    if TETRIS_AI.train:
-        exit('should not be training')
-        import pandas as pd
-        data = []
-        run = 0
-        while True:
-            for _ in range(5):
-                mean_shapes = 0
-                max_score = []
-                for _ in range(20):
-                    run += 1
-                    if run >= 2000:
-                        TETRIS_AI.epsilon = 0.45
-                    if run == 4000:
-                        TETRIS_AI.epsilon = 0.4
-                    if run == 6000:
-                        TETRIS_AI.epsilon = 0.2
-                    if run > 8000:
-                        TETRIS_AI.epsilon = 0.01
-                    app = QApplication([])
-                    tetris = Tetris()
-                    app.exec_()
-                    if EXIT:
-                        break
-                    mean_shapes += tetris.shapesPlaced
-                    max_score.append(tetris.tboard.score)
-                    del app
-                avg = sum(max_score) / len(max_score)
-                print('###############################')
-                data.append({'Runs': run, 'Avg Shapes': mean_shapes, 'MaxScore': max(max_score), 'AvgScore': avg,
-                             'TotalStates': len(TETRIS_AI.qvs)})
-                print('{} Runs'.format(run))
-                print('Average Shapes: ', mean_shapes / 20)
-                print('Max Score: ', max(max_score))
-                print('Average Score: ', avg)
-                print('States in Q: ', len(TETRIS_AI.qvs))
-                print('###############################', end='\n\n\n')
-
-            print("SAVE DATA")
-            df = pd.DataFrame(data=data)
-            df.set_index('Runs', inplace=True)
-            df.to_csv('C:/Users/mpei3/Desktop/Learn/tl.csv')
-
-            # Write to file
-            f_myfile = open('qvs.pickle', 'wb')
-            pickle.dump(TETRIS_AI.qvs, f_myfile)
-            f_myfile.close()
+    if agent.train:
+        train_ai(episodes)
     else:
+        # can use any pickle file
         get_trained_values()
         run_game()
 
