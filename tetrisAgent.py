@@ -75,6 +75,7 @@ class QLearner():
         if sumHoles2 > sumHoles1:
             reward -= 40 * (sumHoles2 - sumHoles1)
         reward += lines ** 2
+        return reward
 
     def get_legal_actions(self, state):
         shape = Shape(state[1])
@@ -153,9 +154,6 @@ class QLearner():
         self.qvs[stateKey] = (1 - self.alpha) * q1 + self.alpha * samp
 
     def get_policy(self, state):
-        subwells = ()
-        maxAction = None
-        maxVal = float('-inf')
         return self.move_from_qvs(state)
 
     def calculate_index(self, contour, shape, d0, x0):
