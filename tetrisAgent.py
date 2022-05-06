@@ -1,6 +1,7 @@
 from tetris_model import BOARD_DATA, Shape
 import random
 
+
 class GameState:
     def __init__(self, board, shape, nextShape=None):
         self.currentShape = shape
@@ -27,12 +28,13 @@ class GameState:
         """Returns a tuple of integers ranged 0-6 representing the height diff between
         a column and subsequent columns."""
         bumps = self.get_bumpyness()
-        wells = [(bumps[i], bumps[i+1], bumps[i+2], bumps[i+3], bumps[i+4]) for i in range(BOARD_DATA.width - 4)]
+        wells = [(bumps[i], bumps[i + 1], bumps[i + 2], bumps[i + 3], bumps[i + 4]) for i in
+                 range(BOARD_DATA.width - 4)]
         contour = []
         for subwell in wells:
             temp = [0] * 4
-            for idx in range(len(subwell)-1):
-                diff = subwell[idx+1] - subwell[idx]
+            for idx in range(len(subwell) - 1):
+                diff = subwell[idx + 1] - subwell[idx]
                 if diff > 3:
                     diff = 3
                 if diff < -3:
@@ -50,22 +52,31 @@ class GameState:
                     holes[col] += 1
         return tuple(holes)
 
+
 class QLearner():
-    def __init__(self):
-        self.qvs = {}  
-        self.epsilon = 0.5
-        self.alpha = 0.7
-        self.discount = 0.8
-        self.e = {}
-        self.chosen = 0
+    def __init__(self, **kwargs):
+        self.qvs = {}
+        self.epsilon = kwargs.get('epsilon', 0.05)
+        self.alpha = kwargs.get('alpha', 0.2)
+        self.discount = kwargs.get('discount', 0.7)
+        self.train = kwargs.get('train', True)
 
-    def incrementE(self, stateKey):
-        if stateKey in self.e.keys():
-            self.e[stateKey] += 1
-        else:
-            self.e[stateKey] = 1
+    def state_from_gamestate(self, gamestate):
+        return gamestate.contour, gamestate.currentShape.shape
 
-    def getLegalActions(self, state):
+    def get_reward(self, gameState, nextGameState, lines):
+        maxHeight1 = max(gameState.get_bumpyness())
+        maxHeight2 = max(nextGameState.get_bumpyness())
+        sumHoles1 = sum(gameState.holes)
+        sumHoles2 = sum(nextGameState.holes)
+        reward = 0
+        if maxHeight2 > maxHeight1:
+            reward -= 100 * (maxHeight2 - maxHeight1)
+        if sumHoles2 > sumHoles1:
+            reward -= 40 * (sumHoles2 - sumHoles1)
+        reward += lines ** 2
+
+    def get_legal_actions(self, state):
         shape = Shape(state[1])
         if shape.shape in (Shape.shapeI, Shape.shapeZ, Shape.shapeS):
             directions = [0, 1]
@@ -82,11 +93,11 @@ class QLearner():
                 legalMoves.append((d, x))
         return legalMoves
 
-    def observeTransition(self, state, action, nextState, deltaReward):
+    def observe_transitions(self, state, action, nextState, deltaReward):
         self.update(state, action, nextState, deltaReward)
 
-    def getAction(self, state):
-        legalActions = self.getLegalActions(state)
+    def get_action(self, state):
+        legalActions = self.get_legal_actions(state)
         if len(legalActions) == 0:
             return None
         randInt = random.random()
@@ -101,14 +112,10 @@ class QLearner():
         else:
             return 0.0
 
-    def val_from_qvs(self, state):
-        legal = state.get_legal_moves()
-        return max([self.get_qv(state, move) for move in legal])
-
     def move_from_qvs(self, state):
         best_action = None
         maxQ = float('-inf')
-        legal_actions = self.getLegalActions(state)
+        legal_actions = self.get_legal_actions(state)
         unseen = False
         positiveOrZero = []
         if len(legal_actions) == 0:
@@ -125,13 +132,12 @@ class QLearner():
                 best_action = action
         if unseen:
             return random.choice(positiveOrZero)
-        self.chosen += 1
         return best_action
 
     def update(self, state, move, nextState, reward):
         stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
         q1 = self.get_qv(stateKey)
-        legalActions = self.getLegalActions(nextState)
+        legalActions = self.get_legal_actions(nextState)
         if len(legalActions) == 0:
             nextQValue = 0
         else:
@@ -144,15 +150,18 @@ class QLearner():
         samp = reward + self.discount * nextQValue
 
         stateKey = self.calculate_index(state[0][0], state[1], move[0], move[1])
-        qval = (1 - self.alpha) * q1 + self.alpha * samp
         self.qvs[stateKey] = (1 - self.alpha) * q1 + self.alpha * samp
 
     def get_policy(self, state):
+        subwells = ()
+        maxAction = None
+        maxVal = float('-inf')
         return self.move_from_qvs(state)
 
     def calculate_index(self, contour, shape, d0, x0):
         index = 0
-        index += (contour[0] + 7*contour[1] + 49*contour[2] + 343 * contour[3])
+        index += (contour[0] + 7 * contour[1] + 49 * contour[2] + 343 * contour[3])
         return index, shape, d0, x0
+
 
 TETRIS_AI = QLearner()
