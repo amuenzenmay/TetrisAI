@@ -37,6 +37,8 @@ tetris_model.py:
   the backboard description, and possible moves.
 
 Run `tetris_game.py` to watch the AI play.
+Press `P` to pause the game.
+Pres `esc` to quit the game where it's at.
 
 ```shell
 $ python3 tetris_game.py
