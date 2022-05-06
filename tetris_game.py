@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal
 from PyQt5.QtGui import QPainter, QColor
 
 from tetris_model import BOARD_DATA, Shape
-from tetrisAgent import TETRIS_AI, GameState
+from tetrisAgent import QLearner, GameState
 import numpy as np
 
 class Tetris(QMainWindow):
@@ -23,8 +23,8 @@ class Tetris(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.gridSize = 10
-        self.speed = 1
+        self.gridSize = 20
+        self.speed = 50
 
         self.timer = QBasicTimer()
         self.setFocusPolicy(Qt.StrongFocus)
@@ -85,8 +85,12 @@ class Tetris(QMainWindow):
         self.sidePanel.updateData()
         self.update()
 
-    def takeStep(self):
+    def train(self, gameState):
+        state = TETRIS_AI.state_from_gamestate(gameState)
+        if TETRIS_AI and not self.nextMove:
+            self.nextMove = TETRIS_AI.get_action(state)
         if self.nextMove:
+            # Put the shape into the correct orientation
             k = 0
             while BOARD_DATA.currentDirection != self.nextMove[0] and k < 4:
                 BOARD_DATA.rotateRight()
@@ -98,73 +102,72 @@ class Tetris(QMainWindow):
                 elif BOARD_DATA.currentX < self.nextMove[1]:
                     BOARD_DATA.moveRight()
                 k += 1
-            self.nextMove = None
-        board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
-        shape1 = BOARD_DATA.currentShape
-        shape2 = BOARD_DATA.nextShape
-        lines = BOARD_DATA.moveDown()
-        nextState = GameState(board, shape1, shape2)
-        return nextState, lines
+        lines, merged = BOARD_DATA.moveDown()  # Move to the next State
+
+        if lines is not None:
+            # Get next state and reward
+            if merged:
+                self.shapesPlaced += 1
+                board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
+                shape1 = BOARD_DATA.currentShape
+                shape2 = BOARD_DATA.nextShape
+                nextGameState = GameState(board, shape1, shape2)
+                nextState = TETRIS_AI.state_from_gamestate(nextGameState)
+                reward = TETRIS_AI.get_reward(gameState, nextGameState, lines)
+                TETRIS_AI.observe_transitions(state, self.nextMove, nextState, reward)
+            self.tboard.score += lines
+            if self.lastShape != BOARD_DATA.currentShape:
+                self.nextMove = None
+                self.lastShape = BOARD_DATA.currentShape
+
+            self.updateWindow()
+        else:
+            self.gameOver = True
+
+    def play(self, gameState):
+        state = TETRIS_AI.state_from_gamestate(gameState)
+        if TETRIS_AI and not self.nextMove:
+            self.nextMove = TETRIS_AI.get_policy(state)
+        if self.nextMove:
+            # Put the shape into the correct orientation
+            k = 0
+            while BOARD_DATA.currentDirection != self.nextMove[0] and k < 4:
+                BOARD_DATA.rotateRight()
+                k += 1
+            k = 0
+            while BOARD_DATA.currentX != self.nextMove[1] and k < 5:
+                if BOARD_DATA.currentX > self.nextMove[1]:
+                    BOARD_DATA.moveLeft()
+                elif BOARD_DATA.currentX < self.nextMove[1]:
+                    BOARD_DATA.moveRight()
+                k += 1
+        lines, merged = BOARD_DATA.moveDown()  # Move to the next State
+
+        if lines is not None:
+            self.tboard.score += lines
+            if self.lastShape != BOARD_DATA.currentShape:
+                self.nextMove = None
+                self.lastShape = BOARD_DATA.currentShape
+
+            self.updateWindow()
+        else:
+            self.gameOver = True
 
     def timerEvent(self, event):
         if event.timerId() == self.timer.timerId():
             if self.gameOver:
-                app.quit()
+                QApplication.quit()
 
             # Get the current state
             board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
             shape1 = BOARD_DATA.currentShape
             shape2 = BOARD_DATA.nextShape
             gameState = GameState(board, shape1, shape2)
-            state = (gameState.contour, gameState.currentShape.shape)
 
-
-            if TETRIS_AI and not self.nextMove:
-                self.nextMove = TETRIS_AI.getAction(state)
-            if self.nextMove:
-                k = 0
-                while BOARD_DATA.currentDirection != self.nextMove[0] and k < 4:
-                    BOARD_DATA.rotateRight()
-                    k += 1
-                k = 0
-                while BOARD_DATA.currentX != self.nextMove[1] and k < 5:
-                    if BOARD_DATA.currentX > self.nextMove[1]:
-                        BOARD_DATA.moveLeft()
-                    elif BOARD_DATA.currentX < self.nextMove[1]:
-                        BOARD_DATA.moveRight()
-                    k += 1
-            lines, merged = BOARD_DATA.moveDown()  # Move to the next State
-
-            # print(lines)
-            if lines is not None:
-                # Get next state and reward
-                if merged:
-                    self.shapesPlaced += 1
-                    board = np.array(BOARD_DATA.getData()).reshape((BOARD_DATA.height, BOARD_DATA.width))
-                    shape1 = BOARD_DATA.currentShape
-                    shape2 = BOARD_DATA.nextShape
-
-                    nextGameState = GameState(board, shape1, shape2)
-                    nextState = (nextGameState.contour, nextGameState.currentShape.shape)
-                    maxHeight1 = max(gameState.get_bumpyness())
-                    maxHeight2 = max(nextGameState.get_bumpyness())
-                    sumHoles1 = sum(gameState.holes)
-                    sumHoles2 = sum(nextGameState.holes)
-                    reward = 0
-                    if maxHeight2 > maxHeight1:
-                        reward -= 100 * (maxHeight2 - maxHeight1)
-                    if sumHoles2 > sumHoles1:
-                        reward -= 40 * (sumHoles2 - sumHoles1)
-                    reward += lines ** 2
-                    TETRIS_AI.observeTransition(state, self.nextMove, nextState, reward)
-                self.tboard.score += lines
-                if self.lastShape != BOARD_DATA.currentShape:
-                    self.nextMove = None
-                    self.lastShape = BOARD_DATA.currentShape
-
-                self.updateWindow()
+            if TETRIS_AI.train:
+                self.train(gameState)
             else:
-                self.gameOver = True
+                self.play(gameState)
 
         else:
             super(Tetris, self).timerEvent(event)
@@ -202,7 +205,7 @@ class Tetris(QMainWindow):
             print('Exiting Game')
             global EXIT
             EXIT = True
-            app.quit()
+            QApplication.quit()
         elif key == Qt.Key_S:
             self.speed -= 5
         elif key == Qt.Key_W:
@@ -296,72 +299,100 @@ class Board(QFrame):
         self.msg2Statusbar.emit(str(self.score))
         self.update()
 
+def get_trained_values(path='qvaluesTrain1.pickle'):
+    qvalues = None
+    if os.path.getsize(path) > 0:
+        f_myfile = open(path, 'rb')
+        qvalues = pickle.load(f_myfile)  # variables come out in the order you put them in
+        f_myfile.close()
+    if qvalues:
+        TETRIS_AI.qvs = qvalues
+    else:
+        sys.exit('FAILED TO READ TRAINING DATA')
+
+def run_game():
+    mean_shapes = 0
+    max_score = []
+    for _ in range(20):
+        app = QApplication([])
+        tetris = Tetris()
+        app.exec_()
+        if EXIT:
+            break
+        mean_shapes += tetris.shapesPlaced
+        max_score.append(tetris.tboard.score)
+        del app
+    avg = sum(max_score) / len(max_score)
+    print('Average Shapes: ', mean_shapes / 20)
+    print('Max Score: ', max(max_score))
+    print('Min Score: ', min(max_score))
+    print('Average Score: ', avg)
+    print('States in Q: ', len(TETRIS_AI.qvs))
 
 EXIT = False
 if __name__ == '__main__':
     # random.seed(32)
-    import pandas as pd
     import pickle
     import os
+    if len(sys.argv) <= 1:
+        train = False
+    elif sys.argv[1] == 1:
+        train = True
+    else:
+        train = False
+    TETRIS_AI = QLearner(train=train)
 
-    # Read from file
-    """Uncomment this and set TETRIS_AI.qvs to qvalues to keep previous training data"""
-    # qvalues = None
-    # if os.path.getsize('qvs.pickle') > 0:
-    #     f_myfile = open('qvs.pickle', 'rb')
-    #     qvalues = pickle.load(f_myfile)  # variables come out in the order you put them in
-    #     f_myfile.close()
-    # if qvalues:
-    #     TETRIS_AI.qvs = qvalues
-    #     print('Read in q vlaues')
+    if TETRIS_AI.train:
+        exit('should not be training')
+        import pandas as pd
+        data = []
+        run = 0
+        while True:
+            for _ in range(5):
+                mean_shapes = 0
+                max_score = []
+                for _ in range(20):
+                    run += 1
+                    if run >= 2000:
+                        TETRIS_AI.epsilon = 0.45
+                    if run == 4000:
+                        TETRIS_AI.epsilon = 0.4
+                    if run == 6000:
+                        TETRIS_AI.epsilon = 0.2
+                    if run > 8000:
+                        TETRIS_AI.epsilon = 0.01
+                    app = QApplication([])
+                    tetris = Tetris()
+                    app.exec_()
+                    if EXIT:
+                        break
+                    mean_shapes += tetris.shapesPlaced
+                    max_score.append(tetris.tboard.score)
+                    del app
+                avg = sum(max_score) / len(max_score)
+                print('###############################')
+                data.append({'Runs': run, 'Avg Shapes': mean_shapes, 'MaxScore': max(max_score), 'AvgScore': avg,
+                             'TotalStates': len(TETRIS_AI.qvs)})
+                print('{} Runs'.format(run))
+                print('Average Shapes: ', mean_shapes / 20)
+                print('Max Score: ', max(max_score))
+                print('Average Score: ', avg)
+                print('States in Q: ', len(TETRIS_AI.qvs))
+                print('###############################', end='\n\n\n')
 
+            print("SAVE DATA")
+            df = pd.DataFrame(data=data)
+            df.set_index('Runs', inplace=True)
+            df.to_csv('C:/Users/mpei3/Desktop/Learn/tl.csv')
 
+            # Write to file
+            f_myfile = open('qvs.pickle', 'wb')
+            pickle.dump(TETRIS_AI.qvs, f_myfile)
+            f_myfile.close()
+    else:
+        get_trained_values()
+        run_game()
 
-    from datetime import datetime
-    data = []
-    run =0
-    while True:
-        for _ in range(5):
-            mean_shapes = 0
-            max_score = []
-            for _ in range(20):
-                run += 1
-                if run >= 2000:
-                    TETRIS_AI.epsilon = 0.45
-                if run == 4000:
-                    TETRIS_AI.epsilon = 0.4
-                if run == 6000:
-                    TETRIS_AI.epsilon = 0.2
-                if run > 8000:
-                    TETRIS_AI.epsilon = 0.01
-                app = QApplication([])
-                tetris = Tetris()
-                app.exec_()
-                if EXIT:
-                    break
-                mean_shapes += tetris.shapesPlaced
-                max_score.append(tetris.tboard.score)
-                del app
-            avg = sum(max_score)/ len(max_score)
-            print('###############################')
-            data.append({'Runs': run, 'Avg Shapes': mean_shapes, 'MaxScore': max(max_score), 'AvgScore': avg, 'TotalStates': len(TETRIS_AI.qvs)})
-            print('{} Runs'.format(run))
-            print('Average Shapes: ', mean_shapes / 20)
-            print('Max Score: ', max(max_score))
-            print('Average Score: ', avg)
-            print('States in Q: ', len(TETRIS_AI.qvs))
-            print('###############################', end='\n\n\n')
-
-        print("SAVE DATA")
-        time = datetime.now().strftime('_%H-%M')
-        df = pd.DataFrame(data=data)
-        df.set_index('Runs', inplace=True)
-        df.to_csv('C:/Users/mpei3/Desktop/Learn/tl.csv')
-
-        # Write to file
-        f_myfile = open('qvs.pickle', 'wb')
-        pickle.dump(TETRIS_AI.qvs, f_myfile)
-        f_myfile.close()
 
     sys.exit()
 
